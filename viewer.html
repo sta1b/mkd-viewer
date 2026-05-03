@@ -33,11 +33,11 @@
 
 <script>
     // ============================================================
-    // НАСТРОЙКА — ССЫЛКА НА ФАЙЛ (ВЫ УЖЕ ПРОВЕРИЛИ)
+    // НАСТРОЙКА — ССЫЛКА НА КОНКРЕТНЫЙ ФАЙЛ
     // ============================================================
     const FILE_PUBLIC_LINK = 'https://disk.yandex.ru/d/FUURpMQ5g9GihQ';
     
-    // Цвета и статусы
+    // Цвета
     const COLORS = {
         red: { name: 'Красный', bg: '#ffe6e6', dot: '#ff4444' },
         orange: { name: 'Оранжевый', bg: '#fff0e6', dot: '#ff8800' },
@@ -66,39 +66,71 @@
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     
-    // Получение ID файла и загрузка
+    // ============================================================
+    // ЗАГРУЗКА ДАННЫХ С ЯНДЕКС.ДИСКА ПО ССЫЛКЕ НА ФАЙЛ
+    // ============================================================
     async function loadDataFromDisk() {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         
         try {
+            // Извлекаем ID из ссылки
             const match = FILE_PUBLIC_LINK.match(/d\/([A-Za-z0-9_-]+)/);
             if (!match) throw new Error('Не удалось распознать ссылку на файл');
             const fileId = match[1];
+            console.log('File ID:', fileId);
             
-            // 1. Получаем ссылку на скачивание
+            // Получаем ссылку на скачивание через API Яндекс.Диска
             const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${fileId}`;
+            console.log('API URL:', apiUrl);
+            
             const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error(`Ошибка API: ${response.status}`);
+            console.log('API Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка API Яндекс.Диска: ${response.status} ${response.statusText}`);
+            }
+            
             const downloadData = await response.json();
+            console.log('Download URL получен');
             
-            // 2. Скачиваем JSON
+            // Скачиваем сам JSON-файл
             const fileResponse = await fetch(downloadData.href);
-            const jsonData = await fileResponse.json();
+            if (!fileResponse.ok) {
+                throw new Error(`Ошибка скачивания файла: ${fileResponse.status}`);
+            }
             
+            const jsonData = await fileResponse.json();
+            console.log('JSON получен');
+            
+            // Проверка структуры
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
-                throw new Error('Неверный формат файла');
+                throw new Error('Файл не соответствует формату базы знаний');
             }
             
             data = jsonData;
             renderApp();
+            
         } catch (err) {
-            console.error(err);
-            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Проверьте ссылку и права доступа к файлу.</div>`;
+            console.error('Ошибка:', err);
+            // Показываем понятное сообщение об ошибке
+            appDiv.innerHTML = `
+                <div class="error">
+                    ❌ Ошибка загрузки: ${err.message}<br><br>
+                    <strong>Возможные причины:</strong><br>
+                    1. Файл на Яндекс.Диске не имеет публичного доступа<br>
+                    2. Ссылка на файл указана неверно<br>
+                    3. Проблемы с сетью или CORS<br><br>
+                    <button onclick="location.reload()">🔄 Попробовать снова</button>
+                </div>
+            `;
         }
     }
     
-    // Функции отображения (сокращены для ясности, полная версия будет работать)
+    // ============================================================
+    // ФУНКЦИИ ПРОСМОТРА
+    // ============================================================
+    
     function getActiveHouses() {
         return data.houses.filter(h => h.status === 'active');
     }
@@ -206,13 +238,13 @@
             }
             
             locationsRows += `<tr>
-                <tr><strong>${escapeHtml(location.place)}</strong></td>
+                <td><strong>${escapeHtml(location.place)}</strong></td>
                 <td>${keysHtml || '—'}</td>
                 <td>${escapeHtml(location.code || '—')}</td>
                 <td>${escapeHtml(location.location || '—')}</td>
                 <td>${escapeHtml(location.note || '—')}</td>
                 <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-            <tr>`;
+            </tr>`;
         });
         
         if (!locationsRows) locationsRows = `<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>`;
@@ -277,6 +309,7 @@
         }
     }
     
+    // Запуск
     loadDataFromDisk();
 </script>
 </body>
