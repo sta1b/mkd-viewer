@@ -89,7 +89,7 @@
             color: white;
         }
         
-        /* Таблица с прокруткой как в админке */
+        /* Таблица с прокруткой */
         .table-container {
             overflow-x: auto;
             max-height: 70vh;
@@ -301,8 +301,23 @@
     }
     
     // ============================================================
-    // ФУНКЦИИ ПРОСМОТРА
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
     // ============================================================
+    
+    function getAccessPaths(locationId, visited = new Set()) {
+        const location = data.locations.find(l => l.id === locationId);
+        if (!location) return [];
+        if (!location.leadsTo || location.leadsTo.length === 0) return [[location]];
+        const paths = [];
+        location.leadsTo.forEach(parentId => {
+            if (visited.has(parentId)) return;
+            const newVisited = new Set(visited);
+            newVisited.add(locationId);
+            const parentPaths = getAccessPaths(parentId, newVisited);
+            parentPaths.forEach(path => paths.push([...path, location]));
+        });
+        return paths;
+    }
     
     function getActiveHouses() {
         return data.houses.filter(h => h.status === 'active');
@@ -340,7 +355,9 @@
         });
     }
     
-    // Рендер главного экрана (список домов)
+    // ============================================================
+    // РЕНДЕР ГЛАВНОГО ЭКРАНА
+    // ============================================================
     function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
@@ -352,8 +369,7 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}</td>
-                    <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
+                    <td style="width: 50px;">${index + 1}${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
@@ -362,7 +378,7 @@
         });
         
         if (tableRows === '') {
-            tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+            tableRows = '</table><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
         }
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
@@ -384,9 +400,9 @@
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
-                                <th data-sort="address">Адрес${sortIcon('address')}</th>
-                                <th data-sort="manager">Управляющий${sortIcon('manager')}</th>
-                                <th data-sort="uk">УК${sortIcon('uk')}</th>
+                                <th data-sort="address">Адрес</th>
+                                <th data-sort="manager">Управляющий</th>
+                                <th data-sort="uk">УК</th>
                                 <th>Цвет</th>
                             </tr>
                         </thead>
@@ -397,7 +413,9 @@
         `;
     }
     
-    // Рендер карточки дома
+    // ============================================================
+    // РЕНДЕР КАРТОЧКИ ДОМА (ПОЛНЫЙ ФУНКЦИОНАЛ, БЕЗ КНОПОК РЕДАКТИРОВАНИЯ)
+    // ============================================================
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
@@ -411,15 +429,49 @@
         locations.forEach(location => {
             const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
+            
             let keysHtml = '';
             if (location.keys && location.keys.length) {
                 keysHtml = location.keys.map(keyItem => {
-                    const keyId = typeof keyItem === 'string' ? keyItem : keyItem.keyId;
+                    let keyId, note;
+                    if (typeof keyItem === 'string') {
+                        keyId = keyItem;
+                        note = '';
+                    } else {
+                        keyId = keyItem.keyId;
+                        note = keyItem.note || '';
+                    }
                     const key = data.keys.find(k => k.id === keyId);
                     if (!key) return '';
                     const status = KEY_STATUS[key.status] || KEY_STATUS.ok;
-                    return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}</span>`;
+                    return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}${note ? ` (${escapeHtml(note)})` : ''}</span>`;
                 }).join(' ');
+            }
+            
+            // Вход через (как в админке)
+            let accessHtml = '';
+            if (location.entryFromStreet) {
+                accessHtml = '🚪 улица';
+            } else {
+                const paths = getAccessPaths(location.id);
+                if (paths.length === 0) {
+                    accessHtml = '—';
+                } else if (paths.length === 1) {
+                    const route = paths[0].slice(0, -1);
+                    if (route.length === 0) {
+                        accessHtml = '—';
+                    } else {
+                        accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
+                    }
+                } else {
+                    const mainPath = paths[0].slice(0, -1);
+                    if (mainPath.length === 0) {
+                        accessHtml = '—';
+                    } else {
+                        const mainPathStr = mainPath.map(l => escapeHtml(l.place)).join(' → ');
+                        accessHtml = `${mainPathStr} [+${paths.length - 1}]`;
+                    }
+                }
             }
             
             locationsRows += `
@@ -428,6 +480,7 @@
                     <td>${keysHtml || '—'}</td>
                     <td>${escapeHtml(location.code || '—')}</td>
                     <td>${escapeHtml(location.location || '—')}</td>
+                    <td>${accessHtml}</td>
                     <td>${escapeHtml(location.note || '—')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>
@@ -435,7 +488,7 @@
         });
         
         if (!locationsRows) {
-            locationsRows = '<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>';
+            locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
         }
         
         return `
@@ -449,14 +502,21 @@
                     <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem;">
                         ${house.category === 'withKeys' ? '🔑 Ключи в наличии' : (house.category === 'noKeys' ? '🚪 Бесключевой доступ' : '⚠️ Требует внимания')}
                     </div>
+                    <div style="flex:1"></div>
+                    ${renderLegendTooltip()}
                 </div>
+                
                 <div class="keyring-header">
-                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p><strong>🔗 КЛЮЧИ:</strong> отсутствуют</p>'}
+                    ${keyring ? `<p><strong>🔗 СВЯЗКА КЛЮЧЕЙ:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p><strong>🔗 КЛЮЧИ:</strong> отсутствуют</p>'}
                     <p><strong>УК:</strong> ${escapeHtml(house.uk || '—')}</p>
                     <p><strong>Управляющий:</strong> ${escapeHtml(house.manager || '—')}</p>
                     <p><strong>Примечание:</strong> ${escapeHtml(house.note || '—')}</p>
                 </div>
-                <h3>📍 Локации и доступы</h3>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>📍 Локации и доступы</h3>
+                </div>
+                
                 <div class="table-container">
                     <table>
                         <thead>
@@ -465,18 +525,21 @@
                                 <th>Ключи</th>
                                 <th>Код</th>
                                 <th>Расположение</th>
-                                <th>Примечание</th>
+                                <th>Вход через</th>
+                                <th>Комментарий</th>
                                 <th>Цвет</th>
                             </tr>
                         </thead>
                         <tbody>${locationsRows}</tbody>
-                    <table>
+                    </table>
                 </div>
             </div>
         `;
     }
     
-    // Основной рендер
+    // ============================================================
+    // ОСНОВНОЙ РЕНДЕР
+    // ============================================================
     function renderApp() {
         const container = document.getElementById('app');
         if (!container) return;
