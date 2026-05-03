@@ -187,14 +187,15 @@
         return match ? match[1] : null;
     }
     
-    // Загрузка списка файлов из публичной папки
-    async function getPublicFolderFiles(publicId) {
-        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${publicId}&limit=50`;
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Ошибка загрузки списка папки');
-        const data = await response.json();
-        return data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
-    }
+    // Загрузка списка файлов из публичной папки (рабочая версия)
+async function getPublicFolderFiles(publicId) {
+    // Используем правильный API-метод с указанием public_key
+    const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(publicId)}`;
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error('Ошибка загрузки списка папки');
+    const data = await response.json();
+    return data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
+}
     
     // Загрузка файла по публичной ссылке
     async function downloadPublicFile(publicUrl) {
