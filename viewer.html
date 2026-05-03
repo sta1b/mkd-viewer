@@ -33,7 +33,7 @@
 
 <script>
     // ============================================================
-    // НАСТРОЙКА — ССЫЛКА НА КОНКРЕТНЫЙ ФАЙЛ
+    // НАСТРОЙКА — ССЫЛКА НА ФАЙЛ (ВАША ПРОВЕРЕННАЯ ССЫЛКА)
     // ============================================================
     const FILE_PUBLIC_LINK = 'https://disk.yandex.ru/d/FUURpMQ5g9GihQ';
     
@@ -67,60 +67,46 @@
     }
     
     // ============================================================
-    // ЗАГРУЗКА ДАННЫХ С ЯНДЕКС.ДИСКА ПО ССЫЛКЕ НА ФАЙЛ
+    // ЗАГРУЗКА ДАННЫХ — ПРЯМОЙ ЗАПРОС К ФАЙЛУ ЧЕРЕЗ API
     // ============================================================
     async function loadDataFromDisk() {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         
         try {
-            // Извлекаем ID из ссылки
+            // Получаем ID из ссылки
             const match = FILE_PUBLIC_LINK.match(/d\/([A-Za-z0-9_-]+)/);
-            if (!match) throw new Error('Не удалось распознать ссылку на файл');
+            if (!match) throw new Error('Не удалось распознать ссылку');
             const fileId = match[1];
-            console.log('File ID:', fileId);
             
-            // Получаем ссылку на скачивание через API Яндекс.Диска
+            // Запрашиваем ссылку на скачивание через API Яндекс.Диска
             const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${fileId}`;
-            console.log('API URL:', apiUrl);
-            
             const response = await fetch(apiUrl);
-            console.log('API Response status:', response.status);
             
             if (!response.ok) {
-                throw new Error(`Ошибка API Яндекс.Диска: ${response.status} ${response.statusText}`);
+                throw new Error(`Ошибка API: ${response.status} — файл не найден или нет публичного доступа`);
             }
             
             const downloadData = await response.json();
-            console.log('Download URL получен');
-            
-            // Скачиваем сам JSON-файл
             const fileResponse = await fetch(downloadData.href);
-            if (!fileResponse.ok) {
-                throw new Error(`Ошибка скачивания файла: ${fileResponse.status}`);
-            }
-            
             const jsonData = await fileResponse.json();
-            console.log('JSON получен');
             
-            // Проверка структуры
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
                 throw new Error('Файл не соответствует формату базы знаний');
             }
             
             data = jsonData;
             renderApp();
-            
         } catch (err) {
-            console.error('Ошибка:', err);
-            // Показываем понятное сообщение об ошибке
+            console.error(err);
             appDiv.innerHTML = `
                 <div class="error">
                     ❌ Ошибка загрузки: ${err.message}<br><br>
-                    <strong>Возможные причины:</strong><br>
-                    1. Файл на Яндекс.Диске не имеет публичного доступа<br>
-                    2. Ссылка на файл указана неверно<br>
-                    3. Проблемы с сетью или CORS<br><br>
+                    <strong>Проверьте:</strong><br>
+                    1. Что файл на Яндекс.Диске расшарен как "Доступ по ссылке"<br>
+                    2. Что ссылка скопирована именно на файл (.json), а не на папку<br>
+                    3. Откройте ссылку в режиме инкогнито — должен скачаться файл<br><br>
+                    <a href="${FILE_PUBLIC_LINK}" target="_blank">🔗 Открыть файл на Яндекс.Диске</a><br><br>
                     <button onclick="location.reload()">🔄 Попробовать снова</button>
                 </div>
             `;
@@ -184,7 +170,7 @@
             </tr>`;
         });
         
-        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
+        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></table>`;
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         
