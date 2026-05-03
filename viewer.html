@@ -5,27 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>База знаний МКД - Просмотр</title>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, sans-serif; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
         body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
-        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; padding: 20px; }
+        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         h1 { font-size: 1.5rem; margin-bottom: 10px; }
         .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between; }
-        button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; }
-        .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; }
+        button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+        button:hover { background: #1d4ed8; transform: scale(0.98); }
+        .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.9rem; background: #f9fafb; }
         .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; margin-left: 5px; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; margin-left: 5px; }
         .status-ok { background: #44cc44; color: white; }
         .status-plumber { background: #4444ff; color: white; }
         .status-unverified { background: #ffcc00; color: black; }
         .status-broken { background: #ff4444; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
-        th { background: #f8fafc; padding: 12px 8px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; border-radius: 16px; overflow: hidden; }
+        th { background: #f8fafc; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; cursor: pointer; user-select: none; }
+        th:hover { background: #e2e8f0; }
         td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-        .empty-message, .loading, .error { text-align: center; padding: 40px; }
-        .loading { color: #2563eb; }
-        .error { color: #ef4444; }
+        .empty-message, .loading, .error { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
+        .loading { color: #2563eb; font-style: normal; }
+        .error { color: #ef4444; font-style: normal; }
         .keyring-header { background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
-        @media (max-width: 600px) { .app { padding: 12px; } th, td { padding: 8px 4px; } }
+        
+        /* Легенда цветов */
+        .legend-tooltip { position: relative; display: inline-block; cursor: help; }
+        .legend-tooltip .tooltip-text {
+            visibility: hidden;
+            background: #1e293b;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            position: absolute;
+            z-index: 1000;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            white-space: nowrap;
+            font-size: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .legend-tooltip .tooltip-text::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid #1e293b;
+        }
+        .legend-tooltip:hover .tooltip-text { visibility: visible; }
+        .tooltip-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+        
+        @media (max-width: 600px) {
+            .app { padding: 12px; }
+            th, td { padding: 8px 4px; font-size: 0.85rem; }
+            .legend-tooltip .tooltip-text { white-space: normal; width: 250px; left: auto; right: 0; transform: none; }
+            .legend-tooltip .tooltip-text::before { left: auto; right: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -33,17 +72,20 @@
 
 <script>
     // ============================================================
-    // ЦВЕТА И СТАТУСЫ
+    // ЦВЕТА (полный список, как в админке)
     // ============================================================
     const COLORS = {
-        red: { name: 'Красный', bg: '#ffe6e6', dot: '#ff4444' },
-        orange: { name: 'Оранжевый', bg: '#fff0e6', dot: '#ff8800' },
-        yellow: { name: 'Жёлтый', bg: '#fff3cd', dot: '#ffcc00' },
-        green: { name: 'Зелёный', bg: '#e6ffe6', dot: '#44cc44' },
-        blue: { name: 'Синий', bg: '#e6f3ff', dot: '#4444ff' },
-        '': { name: 'Без цвета', bg: '#ffffff', dot: '#cccccc' }
+        red: { name: 'Красный', desc: 'критично (нет ключа)', bg: '#ffe6e6', dot: '#ff4444' },
+        orange: { name: 'Оранжевый', desc: 'доступ через третьих лиц', bg: '#fff0e6', dot: '#ff8800' },
+        yellow: { name: 'Жёлтый', desc: 'требует внимания', bg: '#fff3cd', dot: '#ffcc00' },
+        green: { name: 'Зелёный', desc: 'всё в порядке', bg: '#e6ffe6', dot: '#44cc44' },
+        blue: { name: 'Синий', desc: 'у сантехников', bg: '#e6f3ff', dot: '#4444ff' },
+        purple: { name: 'Фиолетовый', desc: 'ограниченный доступ', bg: '#f3e6ff', dot: '#8844ff' },
+        brown: { name: 'Коричневый', desc: 'непредвиденное', bg: '#f0e6d2', dot: '#885522' },
+        '': { name: 'Без цвета', desc: 'не обработано', bg: '#ffffff', dot: '#cccccc' }
     };
     
+    // Статусы ключей
     const KEY_STATUS = {
         ok: { name: 'В порядке', badge: 'status-ok', icon: '✅' },
         plumber: { name: 'У сантехников', badge: 'status-plumber', icon: '🔵' },
@@ -64,8 +106,25 @@
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     
+    // Легенда цветов (HTML)
+    function renderLegendTooltip() {
+        return `
+            <div class="legend-tooltip">
+                <span style="font-size: 1.2rem; background: #e2e8f0; padding: 4px 10px; border-radius: 20px; cursor: help;">🎨</span>
+                <div class="tooltip-text">
+                    ${Object.entries(COLORS).map(([key, value]) => `
+                        <div class="tooltip-item">
+                            <span class="color-dot" style="background: ${value.dot}; width: 14px; height: 14px;"></span>
+                            <span><strong>${value.name}</strong> — ${value.desc}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
     // ============================================================
-    // ЗАГРУЗКА ДАННЫХ ИЗ ЛОКАЛЬНОГО ФАЙЛА data.json
+    // ЗАГРУЗКА ДАННЫХ
     // ============================================================
     async function loadData() {
         const appDiv = document.getElementById('app');
@@ -134,6 +193,7 @@
         });
     }
     
+    // Рендер главного экрана (список домов)
     function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
@@ -141,11 +201,12 @@
         
         let tableRows = '';
         sorted.forEach((house, index) => {
+            const bgColor = house.color ? COLORS[house.color]?.bg || '' : '';
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
-                <tr style="background: ${house.color ? COLORS[house.color]?.bg || '' : ''}">
+                <tr style="background: ${bgColor};">
                     <td style="width: 50px;">${index + 1}</td>
-                    <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(house.address)}</a></td>
+                    <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
@@ -161,12 +222,15 @@
         
         return `
             <div>
-                <div style="margin-bottom:20px;">
-                    <h1>🏠 База знаний МКД</h1>
-                    <div class="toolbar">
-                        <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
-                        <button id="refresh-btn">🔄 Обновить</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h1>🏠 База знаний МКД</h1>
+                        ${renderLegendTooltip()}
                     </div>
+                    <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">🔄 Обновить</button>
+                </div>
+                <div class="toolbar">
+                    <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div style="overflow-x: auto;">
                     <table>
@@ -186,6 +250,7 @@
         `;
     }
     
+    // Рендер карточки дома
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
@@ -193,9 +258,11 @@
         const keyring = getKeyringForHouse(currentHouseId);
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
+        const houseBgColor = house.color ? COLORS[house.color]?.bg || '' : '';
         
         let locationsRows = '';
         locations.forEach(location => {
+            const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
             let keysHtml = '';
             if (location.keys && location.keys.length) {
@@ -209,7 +276,7 @@
             }
             
             locationsRows += `
-                <tr>
+                <tr style="background: ${bgColor};">
                     <td><strong>${escapeHtml(location.place)}</strong></td>
                     <td>${keysHtml || '—'}</td>
                     <td>${escapeHtml(location.code || '—')}</td>
@@ -226,20 +293,23 @@
         
         return `
             <div>
-                <div style="margin-bottom:20px;">
-                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b;">← Назад</button>
-                    <div style="margin-top: 15px;">
-                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; display: inline-block; margin-right: 10px;"></span>
-                        <h2 style="display: inline-block;">🏠 ${escapeHtml(house.address)}</h2>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
+                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">← Назад</button>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; border-radius: 50%;"></span>
+                        <h2 style="margin:0;">🏠 ${escapeHtml(house.address)}</h2>
+                    </div>
+                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem;">
+                        ${house.category === 'withKeys' ? '🔑 Ключи в наличии' : (house.category === 'noKeys' ? '🚪 Бесключевой доступ' : '⚠️ Требует внимания')}
                     </div>
                 </div>
                 <div class="keyring-header">
-                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || '—')})</p>` : '<p>🔗 Ключи не указаны</p>'}
+                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p><strong>🔗 КЛЮЧИ:</strong> отсутствуют</p>'}
                     <p><strong>УК:</strong> ${escapeHtml(house.uk || '—')}</p>
                     <p><strong>Управляющий:</strong> ${escapeHtml(house.manager || '—')}</p>
                     <p><strong>Примечание:</strong> ${escapeHtml(house.note || '—')}</p>
                 </div>
-                <h3>📍 Локации</h3>
+                <h3>📍 Локации и доступы</h3>
                 <div style="overflow-x: auto;">
                     <table>
                         <thead>
@@ -259,6 +329,7 @@
         `;
     }
     
+    // Основной рендер
     function renderApp() {
         const container = document.getElementById('app');
         if (!container) return;
@@ -273,10 +344,10 @@
         }
         
         if (currentScreen === 'main') {
+            // Поиск с сохранением фокуса
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.value = currentSearchQuery;
-                
                 searchInput.addEventListener('input', (e) => {
                     searchQuery = e.target.value;
                     searchCursorPos = e.target.selectionStart;
@@ -291,21 +362,28 @@
                 });
             }
             
+            // Обновление данных
             const refreshBtn = document.getElementById('refresh-btn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', () => loadData());
             }
             
+            // Сортировка
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
                     const col = th.dataset.sort;
                     if (col === 'index') return;
-                    if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    else { sortColumn = col; sortDirection = 'asc'; }
+                    if (sortColumn === col) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = col;
+                        sortDirection = 'asc';
+                    }
                     renderApp();
                 });
             });
             
+            // Клик по дому
             document.querySelectorAll('.house-link').forEach(link => {
                 link.addEventListener('click', (e) => { 
                     e.preventDefault(); 
