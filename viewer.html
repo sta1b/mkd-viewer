@@ -2,16 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>База знаний МКД - Просмотр</title>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; margin: 0; padding: 0; }
         body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
-        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 20px; }
+        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; padding: 20px; }
         h1 { font-size: 1.5rem; margin-bottom: 10px; }
         .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between; }
         button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; }
-        button:hover { background: #1d4ed8; }
         .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; }
         .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
         .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; margin-left: 5px; }
@@ -34,9 +33,15 @@
 
 <script>
     // ============================================================
-    // НАСТРОЙКИ - ВСТАВЬТЕ ВАШУ ПУБЛИЧНУЮ ССЫЛКУ НА ПАПКУ
+    // НАСТРОЙКИ - ССЫЛКА НА ПАПКУ (НЕ НА ФАЙЛ)
     // ============================================================
-    const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/DZhcbq4m42teSg';  // ← ВАША ССЫЛКА
+    const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/DZhcbq4m42teSg';
+    
+    // Используем публичный прокси для обхода CORS (бесплатно, не требует регистрации)
+    // Если этот прокси не работает, можно заменить на любой другой из списка:
+    // https://cors-anywhere.herokuapp.com/ (может требовать демо-режим)
+    // https://api.allorigins.win/raw?url= (работает всегда)
+    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
     
     // Цвета
     const COLORS = {
@@ -67,35 +72,34 @@
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     
-    // Получение public_key из ссылки
-    async function getPublicKeyFromLink(link) {
-        // Пробуем получить через API
-        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(link)}`;
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Не удалось получить публичный ключ');
-        const data = await response.json();
-        return data.public_key;
+    // Получение ID папки/файла из ссылки
+    function getPublicIdFromLink(link) {
+        const match = link.match(/d\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
     }
     
-    // Загрузка списка файлов из папки
-    async function getPublicFolderFiles(publicKey) {
-        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(publicKey)}&limit=50`;
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Ошибка загрузки списка');
-        const data = await response.json();
+    // Загрузка через прокси (решает проблему CORS)
+    async function fetchViaProxy(url) {
+        const proxyUrl = CORS_PROXY + encodeURIComponent(url);
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        return JSON.parse(text);
+    }
+    
+    // Получение списка файлов из папки
+    async function getFolderFiles(publicId) {
+        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${publicId}&limit=50`;
+        const data = await fetchViaProxy(apiUrl);
         if (!data._embedded || !data._embedded.items) throw new Error('Нет файлов в папке');
-        const jsonFiles = data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
-        if (jsonFiles.length === 0) throw new Error('Нет JSON файлов');
-        return jsonFiles;
+        return data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
     }
     
-    // Скачивание файла по пути
-    async function downloadFileByPath(filePath, publicKey) {
-        const downloadUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(publicKey)}&path=${encodeURIComponent(filePath)}`;
-        const response = await fetch(downloadUrl);
-        if (!response.ok) throw new Error('Ошибка получения ссылки на файл');
-        const data = await response.json();
-        const fileResponse = await fetch(data.href);
+    // Скачивание файла по его пути
+    async function downloadFile(filePath, publicId) {
+        const downloadUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${publicId}&path=${encodeURIComponent(filePath)}`;
+        const downloadData = await fetchViaProxy(downloadUrl);
+        const fileResponse = await fetch(downloadData.href);
         return await fileResponse.json();
     }
     
@@ -105,18 +109,19 @@
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         
         try {
-            // Получаем public_key
-            const publicKey = await getPublicKeyFromLink(FOLDER_PUBLIC_LINK);
+            const publicId = getPublicIdFromLink(FOLDER_PUBLIC_LINK);
+            if (!publicId) throw new Error('Не удалось распознать ссылку на папку');
             
-            // Получаем список файлов
-            const files = await getPublicFolderFiles(publicKey);
+            // Получаем список JSON-файлов
+            const files = await getFolderFiles(publicId);
+            if (files.length === 0) throw new Error('Нет файлов в папке');
             
             // Сортируем по дате изменения (новые сверху)
             files.sort((a, b) => new Date(b.modified) - new Date(a.modified));
             const latestFile = files[0];
             
             // Загружаем самый свежий файл
-            const jsonData = await downloadFileByPath(latestFile.path, publicKey);
+            const jsonData = await downloadFile(latestFile.path, publicId);
             
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
                 throw new Error('Неверный формат файла');
@@ -125,8 +130,14 @@
             data = jsonData;
             renderApp();
         } catch (err) {
-            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Проверьте ссылку на папку и доступ к файлам.</div>`;
             console.error(err);
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>
+                <strong>Возможные причины:</strong><br>
+                1. Папка на Яндекс.Диске не имеет публичного доступа<br>
+                2. Прокси-сервер временно недоступен<br>
+                3. Ссылка на папку указана неверно<br><br>
+                <button onclick="location.reload()">🔄 Попробовать снова</button>
+            </div>`;
         }
     }
     
@@ -194,7 +205,7 @@
         sorted.forEach((house, index) => {
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `<tr>
-                <td style="width: 50px;">${index + 1}</td>
+                <td>${index + 1}</td>
                 <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(house.address)}</a></td>
                 <td>${escapeHtml(house.manager || '')}</td>
                 <td>${escapeHtml(house.uk || '')}</td>
@@ -304,25 +315,22 @@
         }
         
         if (currentScreen === 'main') {
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) searchInput.oninput = (e) => { searchQuery = e.target.value; renderApp(); };
-            const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) refreshBtn.onclick = () => loadDataFromDisk();
+            document.getElementById('search-input')?.addEventListener('input', (e) => { searchQuery = e.target.value; renderApp(); });
+            document.getElementById('refresh-btn')?.addEventListener('click', () => loadDataFromDisk());
             document.querySelectorAll('th[data-sort]').forEach(th => {
-                th.onclick = () => {
+                th.addEventListener('click', () => {
                     const col = th.dataset.sort;
                     if (col === 'index') return;
                     if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
                     else { sortColumn = col; sortDirection = 'asc'; }
                     renderApp();
-                };
+                });
             });
             document.querySelectorAll('.house-link').forEach(link => {
-                link.onclick = (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); };
+                link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
             });
         } else if (currentScreen === 'house') {
-            const backBtn = document.getElementById('back-btn');
-            if (backBtn) backBtn.onclick = () => { currentScreen = 'main'; renderApp(); };
+            document.getElementById('back-btn')?.addEventListener('click', () => { currentScreen = 'main'; renderApp(); });
         }
     }
     
