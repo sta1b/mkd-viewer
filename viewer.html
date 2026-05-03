@@ -5,212 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>База знаний МКД - Просмотр</title>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background: #f3f4f6;
-            padding: 12px;
-            min-height: 100vh;
-        }
-        .app {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
-            justify-content: space-between;
-        }
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.15s;
-        }
-        button:hover {
-            background: #1d4ed8;
-            transform: scale(0.98);
-        }
-        .search-box {
-            flex: 1 1 250px;
-            padding: 10px 14px;
-            border-radius: 40px;
-            border: 1px solid #cbd5e1;
-            font-size: 0.9rem;
-            background: #f9fafb;
-        }
-        .color-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            margin-left: 5px;
-        }
-        .status-ok {
-            background: #44cc44;
-            color: white;
-        }
-        .status-plumber {
-            background: #4444ff;
-            color: white;
-        }
-        .status-unverified {
-            background: #ffcc00;
-            color: black;
-        }
-        .status-broken {
-            background: #ff4444;
-            color: white;
-        }
-        
-        /* Таблица с прокруткой */
-        .table-container {
-            overflow-x: auto;
-            max-height: 70vh;
-            overflow-y: auto;
-            border-radius: 20px;
-            margin-top: 15px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            font-size: 0.9rem;
-            min-width: 600px;
-        }
-        th {
-            background: #f8fafc;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #e2e8f0;
-            cursor: pointer;
-            user-select: none;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        th:hover {
-            background: #e2e8f0;
-        }
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #e2e8f0;
-            vertical-align: top;
-        }
-        
-        .empty-message, .loading, .error {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-            font-style: italic;
-        }
-        .loading {
-            color: #2563eb;
-            font-style: normal;
-        }
-        .error {
-            color: #ef4444;
-            font-style: normal;
-        }
-        .keyring-header {
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-        }
-        
-        /* Легенда цветов */
-        .legend-tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-            margin-left: 10px;
-        }
-        .legend-tooltip .tooltip-text {
-            visibility: hidden;
-            background: #1e293b;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 16px;
-            position: absolute;
-            z-index: 1000;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-top: 8px;
-            white-space: nowrap;
-            font-size: 0.8rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .legend-tooltip .tooltip-text::before {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-bottom: 8px solid #1e293b;
-        }
-        .legend-tooltip:hover .tooltip-text {
-            visibility: visible;
-        }
-        .tooltip-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 5px 0;
-        }
-        
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
+        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between; }
+        button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+        button:hover { background: #1d4ed8; transform: scale(0.98); }
+        .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.9rem; background: #f9fafb; }
+        .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; margin-left: 5px; white-space: nowrap; }
+        .status-ok { background: #44cc44; color: white; }
+        .status-plumber { background: #4444ff; color: white; }
+        .status-unverified { background: #ffcc00; color: black; }
+        .status-broken { background: #ff4444; color: white; }
+
+        .table-container { overflow-x: auto; max-height: 70vh; overflow-y: auto; border-radius: 20px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
+        th { background: #f8fafc; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; cursor: pointer; position: sticky; top: 0; z-index: 10; }
+        th:hover { background: #e2e8f0; }
+        td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+
+        .empty-message, .loading, .error { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
+        .loading { color: #2563eb; font-style: normal; }
+        .error { color: #ef4444; font-style: normal; }
+        .keyring-header { background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
+
+        .legend-tooltip { position: relative; display: inline-block; cursor: help; margin-left: 10px; }
+        .legend-tooltip .tooltip-text { visibility: hidden; background: #1e293b; color: white; padding: 12px 16px; border-radius: 16px; position: absolute; z-index: 1000; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 8px; white-space: nowrap; font-size: 0.8rem; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .legend-tooltip .tooltip-text::before { content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #1e293b; }
+        .legend-tooltip:hover .tooltip-text { visibility: visible; }
+        .tooltip-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+
         @media (max-width: 600px) {
-            .app {
-                padding: 12px;
-            }
-            th, td {
-                padding: 8px 4px;
-                font-size: 0.85rem;
-            }
-            .legend-tooltip .tooltip-text {
-                white-space: normal;
-                width: 250px;
-                left: auto;
-                right: 0;
-                transform: none;
-            }
-            .legend-tooltip .tooltip-text::before {
-                left: auto;
-                right: 20px;
-            }
-            table {
-                min-width: 500px;
-            }
+            .app { padding: 12px; }
+            th, td { padding: 8px 4px; font-size: 0.85rem; }
+            .legend-tooltip .tooltip-text { white-space: normal; width: 250px; left: auto; right: 0; transform: none; }
+            .legend-tooltip .tooltip-text::before { left: auto; right: 20px; }
+            table { min-width: 600px; }
         }
     </style>
 </head>
@@ -218,9 +50,7 @@
 <div class="app" id="app"><div class="loading">⏳ Загрузка данных...</div></div>
 
 <script>
-    // ============================================================
-    // ЦВЕТА (полный список, как в админке)
-    // ============================================================
+    // ==================== НАСТРОЙКИ И КОНСТАНТЫ ====================
     const COLORS = {
         red: { name: 'Красный', desc: 'критично (нет ключа)', bg: '#ffe6e6', dot: '#ff4444' },
         orange: { name: 'Оранжевый', desc: 'доступ через третьих лиц', bg: '#fff0e6', dot: '#ff8800' },
@@ -231,15 +61,13 @@
         brown: { name: 'Коричневый', desc: 'непредвиденное', bg: '#f0e6d2', dot: '#885522' },
         '': { name: 'Без цвета', desc: 'не обработано', bg: '#ffffff', dot: '#cccccc' }
     };
-    
-    // Статусы ключей
     const KEY_STATUS = {
         ok: { name: 'В порядке', badge: 'status-ok', icon: '✅' },
         plumber: { name: 'У сантехников', badge: 'status-plumber', icon: '🔵' },
         unverified: { name: 'Не проверен', badge: 'status-unverified', icon: '❓' },
         broken: { name: 'Сломан', badge: 'status-broken', icon: '🔴' }
     };
-    
+
     let data = null;
     let currentScreen = 'main';
     let currentHouseId = null;
@@ -247,13 +75,12 @@
     let sortDirection = 'asc';
     let searchQuery = '';
     let searchCursorPos = 0;
-    
+
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-    
-    // Легенда цветов (HTML)
+
     function renderLegendTooltip() {
         return `
             <div class="legend-tooltip">
@@ -269,41 +96,25 @@
             </div>
         `;
     }
-    
-    // ============================================================
-    // ЗАГРУЗКА ДАННЫХ
-    // ============================================================
+
+    // ==================== ЗАГРУЗКА ДАННЫХ ====================
     async function loadData() {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
-        
         try {
             const response = await fetch('data.json');
             if (!response.ok) throw new Error(`Файл data.json не найден (${response.status})`);
             const jsonData = await response.json();
-            
-            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
-                throw new Error('Файл не соответствует формату базы знаний');
-            }
-            
+            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
             data = jsonData;
             renderApp();
         } catch (err) {
             console.error(err);
-            appDiv.innerHTML = `
-                <div class="error">
-                    ❌ Ошибка загрузки: ${err.message}<br><br>
-                    <strong>Файл data.json не найден в репозитории.</strong><br>
-                    Пожалуйста, загрузите актуальный файл базы знаний в репозиторий.
-                </div>
-            `;
+            appDiv.innerHTML = `<div class="error">❌ Ошибка загрузки: ${err.message}<br><br><strong>Файл data.json не найден в репозитории.</strong></div>`;
         }
     }
-    
-    // ============================================================
-    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-    // ============================================================
-    
+
+    // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
     function getAccessPaths(locationId, visited = new Set()) {
         const location = data.locations.find(l => l.id === locationId);
         if (!location) return [];
@@ -318,52 +129,18 @@
         });
         return paths;
     }
-    
-    function getActiveHouses() {
-        return data.houses.filter(h => h.status === 'active');
-    }
-    
-    function getKeyringForHouse(houseId) {
-        const house = data.houses.find(h => h.id === houseId);
-        if (!house || !house.keyringId) return null;
-        return data.keyrings.find(k => k.id === house.keyringId);
-    }
-    
-    function getLocations(houseId) {
-        return data.locations.filter(l => l.houseId === houseId).sort((a, b) => (a.order || 9999) - (b.order || 9999));
-    }
-    
-    function filterHouses(housesArray) {
-        if (!searchQuery.trim()) return housesArray;
-        const q = searchQuery.toLowerCase();
-        return housesArray.filter(h => 
-            h.address.toLowerCase().includes(q) ||
-            (h.manager && h.manager.toLowerCase().includes(q)) ||
-            (h.uk && h.uk.toLowerCase().includes(q))
-        );
-    }
-    
-    function getSortedHouses(housesArray) {
-        return [...housesArray].sort((a, b) => {
-            let valA = a[sortColumn] || '';
-            let valB = b[sortColumn] || '';
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }
-    
-    // ============================================================
-    // РЕНДЕР ГЛАВНОГО ЭКРАНА
-    // ============================================================
-        // Рендер главного экрана (список домов)
+
+    function getActiveHouses() { return data.houses.filter(h => h.status === 'active'); }
+    function getKeyringForHouse(houseId) { const h = data.houses.find(h => h.id === houseId); return h?.keyringId ? data.keyrings.find(k => k.id === h.keyringId) : null; }
+    function getLocations(houseId) { return data.locations.filter(l => l.houseId === houseId).sort((a, b) => (a.order || 9999) - (b.order || 9999)); }
+    function filterHouses(arr) { if (!searchQuery.trim()) return arr; const q = searchQuery.toLowerCase(); return arr.filter(h => h.address.toLowerCase().includes(q) || (h.manager && h.manager.toLowerCase().includes(q)) || (h.uk && h.uk.toLowerCase().includes(q))); }
+    function getSortedHouses(arr) { return [...arr].sort((a, b) => { let va = a[sortColumn] || '', vb = b[sortColumn] || ''; if (typeof va === 'string') va = va.toLowerCase(); if (typeof vb === 'string') vb = vb.toLowerCase(); if (va < vb) return sortDirection === 'asc' ? -1 : 1; if (va > vb) return sortDirection === 'asc' ? 1 : -1; return 0; }); }
+
+    // ==================== ОСНОВНЫЕ ЭКРАНЫ ====================
     function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
-        
         let tableRows = '';
         sorted.forEach((house, index) => {
             const bgColor = house.color ? COLORS[house.color]?.bg || '' : '';
@@ -375,16 +152,11 @@
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-                </tr>
-            `;
+                </tr>`;
         });
-        
-        if (tableRows === '') {
-            tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></table>';
-        }
-        
+        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
-        
         return `
             <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
@@ -392,7 +164,7 @@
                         <h1>🏠 База знаний МКД</h1>
                         ${renderLegendTooltip()}
                     </div>
-                    <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">🔄 Обновить</button>
+                    <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b;">🔄 Обновить</button>
                 </div>
                 <div class="toolbar">
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
@@ -414,43 +186,35 @@
             </div>
         `;
     }
-    
-    // ============================================================
-    // РЕНДЕР КАРТОЧКИ ДОМА (ПОЛНЫЙ ФУНКЦИОНАЛ, БЕЗ КНОПОК РЕДАКТИРОВАНИЯ)
-    // ============================================================
+
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
-        
+
         const keyring = getKeyringForHouse(currentHouseId);
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
         const houseBgColor = house.color ? COLORS[house.color]?.bg || '' : '';
-        
+
         let locationsRows = '';
         locations.forEach(location => {
             const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
-            
+
             let keysHtml = '';
             if (location.keys && location.keys.length) {
                 keysHtml = location.keys.map(keyItem => {
                     let keyId, note;
-                    if (typeof keyItem === 'string') {
-                        keyId = keyItem;
-                        note = '';
-                    } else {
-                        keyId = keyItem.keyId;
-                        note = keyItem.note || '';
-                    }
+                    if (typeof keyItem === 'string') { keyId = keyItem; note = ''; }
+                    else { keyId = keyItem.keyId; note = keyItem.note || ''; }
                     const key = data.keys.find(k => k.id === keyId);
                     if (!key) return '';
                     const status = KEY_STATUS[key.status] || KEY_STATUS.ok;
                     return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}${note ? ` (${escapeHtml(note)})` : ''}</span>`;
                 }).join(' ');
             }
-            
-            // Вход через (как в админке)
+
+            // Логика колонки "Вход через" (как в админке)
             let accessHtml = '';
             if (location.entryFromStreet) {
                 accessHtml = '🚪 улица';
@@ -460,22 +224,15 @@
                     accessHtml = '—';
                 } else if (paths.length === 1) {
                     const route = paths[0].slice(0, -1);
-                    if (route.length === 0) {
-                        accessHtml = '—';
-                    } else {
-                        accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
-                    }
+                    if (route.length === 0) accessHtml = '—';
+                    else accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
                 } else {
                     const mainPath = paths[0].slice(0, -1);
-                    if (mainPath.length === 0) {
-                        accessHtml = '—';
-                    } else {
-                        const mainPathStr = mainPath.map(l => escapeHtml(l.place)).join(' → ');
-                        accessHtml = `${mainPathStr} [+${paths.length - 1}]`;
-                    }
+                    if (mainPath.length === 0) accessHtml = '—';
+                    else accessHtml = `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} [+${paths.length-1}]`;
                 }
             }
-            
+
             locationsRows += `
                 <tr style="background: ${bgColor};">
                     <td><strong>${escapeHtml(location.place)}</strong></td>
@@ -485,51 +242,37 @@
                     <td>${accessHtml}</td>
                     <td>${escapeHtml(location.note || '—')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-                </tr>
-            `;
+                </tr>`;
         });
-        
-        if (!locationsRows) {
-            locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
-        }
-        
+
+        if (locationsRows === '') locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
+
         return `
             <div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
-                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">← Назад</button>
+                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b;">← Назад</button>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; border-radius: 50%;"></span>
+                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px;"></span>
                         <h2 style="margin:0;">🏠 ${escapeHtml(house.address)}</h2>
                     </div>
-                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem;">
+                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px;">
                         ${house.category === 'withKeys' ? '🔑 Ключи в наличии' : (house.category === 'noKeys' ? '🚪 Бесключевой доступ' : '⚠️ Требует внимания')}
                     </div>
                     <div style="flex:1"></div>
                     ${renderLegendTooltip()}
                 </div>
-                
                 <div class="keyring-header">
                     ${keyring ? `<p><strong>🔗 СВЯЗКА КЛЮЧЕЙ:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p><strong>🔗 КЛЮЧИ:</strong> отсутствуют</p>'}
                     <p><strong>УК:</strong> ${escapeHtml(house.uk || '—')}</p>
                     <p><strong>Управляющий:</strong> ${escapeHtml(house.manager || '—')}</p>
                     <p><strong>Примечание:</strong> ${escapeHtml(house.note || '—')}</p>
                 </div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>📍 Локации и доступы</h3>
-                </div>
-                
+                <h3>📍 Локации и доступы</h3>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Локация</th>
-                                <th>Ключи</th>
-                                <th>Код</th>
-                                <th>Расположение</th>
-                                <th>Вход через</th>
-                                <th>Комментарий</th>
-                                <th>Цвет</th>
+                                <th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Вход через</th><th>Комментарий</th><th>Цвет</th>
                             </tr>
                         </thead>
                         <tbody>${locationsRows}</tbody>
@@ -538,84 +281,48 @@
             </div>
         `;
     }
-    
-    // ============================================================
-    // ОСНОВНОЙ РЕНДЕР
-    // ============================================================
+
+    // ==================== ОСНОВНОЙ РЕНДЕР ====================
     function renderApp() {
         const container = document.getElementById('app');
         if (!container) return;
         if (!data) { container.innerHTML = '<div class="loading">⏳ Загрузка...</div>'; return; }
-        
-        const currentSearchQuery = searchQuery;
-        
-        switch(currentScreen) {
-            case 'main': container.innerHTML = renderMainScreen(); break;
-            case 'house': container.innerHTML = renderHouseScreen(); break;
-            default: container.innerHTML = renderMainScreen();
-        }
-        
+
+        if (currentScreen === 'main') container.innerHTML = renderMainScreen();
+        else if (currentScreen === 'house') container.innerHTML = renderHouseScreen();
+        else container.innerHTML = renderMainScreen();
+
         if (currentScreen === 'main') {
-            // Поиск с сохранением фокуса
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
-                searchInput.value = currentSearchQuery;
+                searchInput.value = searchQuery;
                 searchInput.addEventListener('input', (e) => {
                     searchQuery = e.target.value;
                     searchCursorPos = e.target.selectionStart;
                     renderApp();
                     setTimeout(() => {
-                        const restoredInput = document.getElementById('search-input');
-                        if (restoredInput) {
-                            restoredInput.focus();
-                            restoredInput.setSelectionRange(searchCursorPos, searchCursorPos);
-                        }
+                        const restored = document.getElementById('search-input');
+                        if (restored) { restored.focus(); restored.setSelectionRange(searchCursorPos, searchCursorPos); }
                     }, 10);
                 });
             }
-            
-            // Обновление данных
-            const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => loadData());
-            }
-            
-            // Сортировка
+            document.getElementById('refresh-btn')?.addEventListener('click', () => loadData());
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
-                    const col = th.dataset.sort;
-                    if (col === 'index') return;
-                    if (sortColumn === col) {
-                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        sortColumn = col;
-                        sortDirection = 'asc';
-                    }
+                    if (th.dataset.sort === 'index') return;
+                    if (sortColumn === th.dataset.sort) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    else { sortColumn = th.dataset.sort; sortDirection = 'asc'; }
                     renderApp();
                 });
             });
-            
-            // Клик по дому
             document.querySelectorAll('.house-link').forEach(link => {
-                link.addEventListener('click', (e) => { 
-                    e.preventDefault(); 
-                    currentHouseId = link.dataset.id; 
-                    currentScreen = 'house'; 
-                    renderApp(); 
-                });
+                link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
             });
         } else if (currentScreen === 'house') {
-            const backBtn = document.getElementById('back-btn');
-            if (backBtn) {
-                backBtn.addEventListener('click', () => { 
-                    currentScreen = 'main'; 
-                    renderApp(); 
-                });
-            }
+            document.getElementById('back-btn')?.addEventListener('click', () => { currentScreen = 'main'; renderApp(); });
         }
     }
-    
-    // Запуск
+
     loadData();
 </script>
 </body>
