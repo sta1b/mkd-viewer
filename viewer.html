@@ -13,6 +13,7 @@
         button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
         button:hover { background: #1d4ed8; transform: scale(0.98); }
         .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.9rem; background: #f9fafb; }
+
         .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; vertical-align: middle; }
         .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; margin-left: 5px; white-space: nowrap; }
         .status-ok { background: #44cc44; color: white; }
@@ -71,6 +72,7 @@
     let data = null;
     let currentScreen = 'main';
     let currentHouseId = null;
+    let currentLocationId = null;  // для просмотра локации
     let sortColumn = 'address';
     let sortDirection = 'asc';
     let searchQuery = '';
@@ -135,6 +137,76 @@
     function getLocations(houseId) { return data.locations.filter(l => l.houseId === houseId).sort((a, b) => (a.order || 9999) - (b.order || 9999)); }
     function filterHouses(arr) { if (!searchQuery.trim()) return arr; const q = searchQuery.toLowerCase(); return arr.filter(h => h.address.toLowerCase().includes(q) || (h.manager && h.manager.toLowerCase().includes(q)) || (h.uk && h.uk.toLowerCase().includes(q))); }
     function getSortedHouses(arr) { return [...arr].sort((a, b) => { let va = a[sortColumn] || '', vb = b[sortColumn] || ''; if (typeof va === 'string') va = va.toLowerCase(); if (typeof vb === 'string') vb = vb.toLowerCase(); if (va < vb) return sortDirection === 'asc' ? -1 : 1; if (va > vb) return sortDirection === 'asc' ? 1 : -1; return 0; }); }
+
+    // ==================== ЭКРАН ЛОКАЦИИ (кликабельные локации) ====================
+    function renderLocationScreen() {
+        const location = data.locations.find(l => l.id === currentLocationId);
+        if (!location) return '<div class="error">Локация не найдена</div>';
+        const house = data.houses.find(h => h.id === location.houseId);
+
+        // Рекурсивное построение дерева доступов
+        function buildAccessTree(locId, visited = new Set()) {
+            const loc = data.locations.find(l => l.id === locId);
+            if (!loc) return null;
+            if (visited.has(locId)) return { location: loc, children: [], isLoop: true };
+            const node = { location: loc, children: [] };
+            if (loc.entryFromStreet) return node;
+            if (!loc.leadsTo || loc.leadsTo.length === 0) return node;
+            const newVisited = new Set(visited);
+            newVisited.add(locId);
+            loc.leadsTo.forEach(parentId => {
+                const childNode = buildAccessTree(parentId, newVisited);
+                if (childNode) node.children.push(childNode);
+            });
+            return node;
+        }
+
+        function renderAccessTree(node, depth = 0) {
+            if (!node) return '';
+            const loc = node.location;
+            const bgColor = depth === 0 ? '#f0f9ff' : (loc.entryFromStreet ? '#f0e6d2' : '#ffffff');
+            let keysHtml = '';
+            if (loc.keys && loc.keys.length) {
+                keysHtml = loc.keys.map(keyItem => {
+                    const keyId = typeof keyItem === 'string' ? keyItem : keyItem.keyId;
+                    const key = data.keys.find(k => k.id === keyId);
+                    if (!key) return '';
+                    const status = KEY_STATUS[key.status] || KEY_STATUS.ok;
+                    return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}</span>`;
+                }).join(' ');
+            }
+            let html = `<div style="margin-left: ${depth * 20}px; margin-bottom: 12px; border-left: ${depth > 0 ? '2px dotted #cbd5e1' : 'none'}; padding-left: ${depth > 0 ? '12px' : '0'};">
+                <div style="background: ${bgColor}; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <strong>${depth === 0 ? '🎯 ' : ''}${escapeHtml(loc.place)}</strong>
+                    ${keysHtml ? `<div style="margin-top: 6px;">${keysHtml}</div>` : ''}
+                    ${loc.code ? `<div>🔐 ${escapeHtml(loc.code)}</div>` : ''}
+                    ${loc.location ? `<div>📍 ${escapeHtml(loc.location)}</div>` : ''}
+                    ${loc.note ? `<div>📝 ${escapeHtml(loc.note)}</div>` : ''}
+                </div>`;
+            if (node.children.length > 0) {
+                html += `<div style="margin-top: 8px;"><div style="color:#94a3b8; font-size:0.85rem;">↓ вход через:</div>${node.children.map(c => renderAccessTree(c, depth + 1)).join('')}</div>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        const tree = buildAccessTree(location.id);
+        const treeHtml = tree ? renderAccessTree(tree) : '<p>Нет данных о маршруте</p>';
+
+        return `
+            <div>
+                <div style="margin-bottom:20px;">
+                    <button id="back-to-house-btn" style="background:#e2e8f0; color:#1e293b;">← Назад к дому</button>
+                    <h2 style="margin-top: 15px;">🔍 ${escapeHtml(location.place)}</h2>
+                </div>
+                <div style="background:#f8fafc; padding:16px; border-radius:20px; margin-bottom:20px;">
+                    <p><strong>🏠 Дом:</strong> ${escapeHtml(house?.address || '')}</p>
+                </div>
+                <h3>📍 Дерево доступов</h3>
+                <div style="background:white; padding:20px; border-radius:16px;">${treeHtml}</div>
+            </div>
+        `;
+    }
 
     // ==================== ОСНОВНЫЕ ЭКРАНЫ ====================
     function renderMainScreen() {
@@ -214,7 +286,6 @@
                 }).join(' ');
             }
 
-            // Логика колонки "Вход через" (как в админке)
             let accessHtml = '';
             if (location.entryFromStreet) {
                 accessHtml = '🚪 улица';
@@ -233,9 +304,10 @@
                 }
             }
 
+            // КЛИКАБЕЛЬНАЯ ЛОКАЦИЯ
             locationsRows += `
                 <tr style="background: ${bgColor};">
-                    <td><strong>${escapeHtml(location.place)}</strong></td>
+                    <td><a href="#" class="location-link" data-id="${location.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(location.place)}</a></td>
                     <td>${keysHtml || '—'}</td>
                     <td>${escapeHtml(location.code || '—')}</td>
                     <td>${escapeHtml(location.location || '—')}</td>
@@ -290,6 +362,7 @@
 
         if (currentScreen === 'main') container.innerHTML = renderMainScreen();
         else if (currentScreen === 'house') container.innerHTML = renderHouseScreen();
+        else if (currentScreen === 'location') container.innerHTML = renderLocationScreen();
         else container.innerHTML = renderMainScreen();
 
         if (currentScreen === 'main') {
@@ -320,6 +393,11 @@
             });
         } else if (currentScreen === 'house') {
             document.getElementById('back-btn')?.addEventListener('click', () => { currentScreen = 'main'; renderApp(); });
+            document.querySelectorAll('.location-link').forEach(link => {
+                link.addEventListener('click', (e) => { e.preventDefault(); currentLocationId = link.dataset.id; currentScreen = 'location'; renderApp(); });
+            });
+        } else if (currentScreen === 'location') {
+            document.getElementById('back-to-house-btn')?.addEventListener('click', () => { currentScreen = 'house'; renderApp(); });
         }
     }
 
