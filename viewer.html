@@ -358,6 +358,7 @@
     // ============================================================
     // РЕНДЕР ГЛАВНОГО ЭКРАНА
     // ============================================================
+        // Рендер главного экрана (список домов)
     function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
@@ -369,7 +370,8 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}${escapeHtml(house.address)}</a></td>
+                    <td style="width: 50px;">${index + 1}</td>
+                    <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
@@ -378,7 +380,7 @@
         });
         
         if (tableRows === '') {
-            tableRows = '</table><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+            tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></table>';
         }
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
@@ -400,9 +402,9 @@
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
-                                <th data-sort="address">Адрес</th>
-                                <th data-sort="manager">Управляющий</th>
-                                <th data-sort="uk">УК</th>
+                                <th data-sort="address">Адрес${sortIcon('address')}</th>
+                                <th data-sort="manager">Управляющий${sortIcon('manager')}</th>
+                                <th data-sort="uk">УК${sortIcon('uk')}</th>
                                 <th>Цвет</th>
                             </tr>
                         </thead>
