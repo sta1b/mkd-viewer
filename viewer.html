@@ -58,6 +58,9 @@
     let sortDirection = 'asc';
     let searchQuery = '';
     
+    // Переменная для хранения позиции курсора в поиске
+    let searchCursorPos = 0;
+    
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -94,7 +97,7 @@
     }
     
     // ============================================================
-    // ФУНКЦИИ ПРОСМОТРА (ТЕ ЖЕ, ЧТО В АДМИНКЕ)
+    // ФУНКЦИИ ПРОСМОТРА
     // ============================================================
     
     function getActiveHouses() {
@@ -159,12 +162,12 @@
                 <div style="margin-bottom:20px;">
                     <h1>🏠 База знаний МКД</h1>
                     <div class="toolbar">
-                        <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
+                        <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
                         <button id="refresh-btn">🔄 Обновить</button>
                     </div>
                 </div>
                 <div style="overflow-x: auto;">
-                    <table>
+                    <tr>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
@@ -246,6 +249,8 @@
         if (!container) return;
         if (!data) { container.innerHTML = '<div class="loading">⏳ Загрузка...</div>'; return; }
         
+        const currentSearchQuery = searchQuery;
+        
         switch(currentScreen) {
             case 'main': container.innerHTML = renderMainScreen(); break;
             case 'house': container.innerHTML = renderHouseScreen(); break;
@@ -253,10 +258,32 @@
         }
         
         if (currentScreen === 'main') {
+            // Восстанавливаем значение поиска
             const searchInput = document.getElementById('search-input');
-            if (searchInput) searchInput.addEventListener('input', (e) => { searchQuery = e.target.value; renderApp(); });
+            if (searchInput) {
+                searchInput.value = currentSearchQuery;
+                
+                // Обработчик ввода с сохранением позиции курсора
+                searchInput.addEventListener('input', (e) => {
+                    searchQuery = e.target.value;
+                    searchCursorPos = e.target.selectionStart;
+                    renderApp();
+                    // После перерисовки восстанавливаем фокус и позицию курсора
+                    setTimeout(() => {
+                        const restoredInput = document.getElementById('search-input');
+                        if (restoredInput) {
+                            restoredInput.focus();
+                            restoredInput.setSelectionRange(searchCursorPos, searchCursorPos);
+                        }
+                    }, 10);
+                });
+            }
+            
             const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) refreshBtn.addEventListener('click', () => loadData());
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => loadData());
+            }
+            
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
                     const col = th.dataset.sort;
@@ -266,12 +293,23 @@
                     renderApp();
                 });
             });
+            
             document.querySelectorAll('.house-link').forEach(link => {
-                link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
+                link.addEventListener('click', (e) => { 
+                    e.preventDefault(); 
+                    currentHouseId = link.dataset.id; 
+                    currentScreen = 'house'; 
+                    renderApp(); 
+                });
             });
         } else if (currentScreen === 'house') {
             const backBtn = document.getElementById('back-btn');
-            if (backBtn) backBtn.addEventListener('click', () => { currentScreen = 'main'; renderApp(); });
+            if (backBtn) {
+                backBtn.addEventListener('click', () => { 
+                    currentScreen = 'main'; 
+                    renderApp(); 
+                });
+            }
         }
     }
     
