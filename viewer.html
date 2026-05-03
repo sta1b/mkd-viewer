@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>Просмотр базы знаний МКД</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f3f4f6;
+            padding: 12px;
+            min-height: 100vh;
+        }
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        h1 { font-size: 1.5rem; }
+        h2 { font-size: 1.3rem; }
+        
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        
+        .search-box {
+            flex: 1 1 250px;
+            padding: 10px 14px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.9rem;
+        }
+        
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 5px;
+        }
+        .status-ok { background: #44cc44; color: white; }
+        .status-plumber { background: #4444ff; color: white; }
+        .status-unverified { background: #ffcc00; color: black; }
+        .status-broken { background: #ff4444; color: white; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        th {
+            background: #f8fafc;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #2563eb;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+        }
+        
+        .keyring-header {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .app { padding: 12px; }
+            th, td { padding: 8px 4px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <div class="loading">⏳ Загрузка данных...</div>
+</div>
+
+<script>
+    // ============================================================
+    // НАСТРОЙКИ - ВСТАВЬТЕ ВАШУ ПУБЛИЧНУЮ ССЫЛКУ НА ПАПКУ
+    // ============================================================
+    // Пример: const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/abc123def456';
+    const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/DZhcbq4m42teSg';
+    
+    // ============================================================
+    // ПРИЛОЖЕНИЕ ДЛЯ ПРОСМОТРА (ТОЛЬКО ЧТЕНИЕ)
+    // ============================================================
+    
+    let data = null;           // загруженные данные
+    let currentScreen = 'main';
+    let currentHouseId = null;
+    let sortColumn = 'address';
+    let sortDirection = 'asc';
+    let searchQuery = '';
+    
+    // Цвета (копия из админки)
+    const COLORS = {
+        red: { name: 'Красный', desc: 'критично', bg: '#ffe6e6', dot: '#ff4444' },
+        orange: { name: 'Оранжевый', desc: 'через людей', bg: '#fff0e6', dot: '#ff8800' },
+        yellow: { name: 'Жёлтый', desc: 'проверить', bg: '#fff3cd', dot: '#ffcc00' },
+        green: { name: 'Зелёный', desc: 'в порядке', bg: '#e6ffe6', dot: '#44cc44' },
+        blue: { name: 'Синий', desc: 'у сантехников', bg: '#e6f3ff', dot: '#4444ff' },
+        '': { name: 'Без цвета', desc: '', bg: '#ffffff', dot: '#cccccc' }
+    };
+    
+    const KEY_STATUS = {
+        ok: { name: 'В порядке', badge: 'status-ok', icon: '✅' },
+        plumber: { name: 'У сантехников', badge: 'status-plumber', icon: '🔵' },
+        unverified: { name: 'Не проверен', badge: 'status-unverified', icon: '❓' },
+        broken: { name: 'Сломан', badge: 'status-broken', icon: '🔴' }
+    };
+    
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    
+    // Получение публичного ID папки из ссылки
+    function getPublicIdFromLink(link) {
+        const match = link.match(/d\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+    }
+    
+    // Загрузка списка файлов из публичной папки
+    async function getPublicFolderFiles(publicId) {
+        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${publicId}&limit=50`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('Ошибка загрузки списка папки');
+        const data = await response.json();
+        return data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
+    }
+    
+    // Загрузка файла по публичной ссылке
+    async function downloadPublicFile(publicUrl) {
+        const response = await fetch(publicUrl);
+        if (!response.ok) throw new Error('Ошибка загрузки файла');
+        return await response.json();
+    }
+    
+    // Главная загрузка данных
+    async function loadDataFromDisk() {
+        const appDiv = document.getElementById('app');
+        appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
+        
+        try {
+            const publicId = getPublicIdFromLink(FOLDER_PUBLIC_LINK);
+            if (!publicId) throw new Error('Не удалось распознать ссылку на папку');
+            
+            // Получаем список файлов
+            const files = await getPublicFolderFiles(publicId);
+            if (files.length === 0) throw new Error('Нет файлов в папке');
+            
+            // Сортируем по дате изменения (новые сверху)
+            files.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+            const latestFile = files[0];
+            
+            // Загружаем самый свежий файл
+            const jsonData = await downloadPublicFile(latestFile.file);
+            
+            // Проверяем структуру
+            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
+                throw new Error('Неверный формат файла');
+            }
+            
+            data = jsonData;
+            renderApp();
+        } catch (err) {
+            appDiv.innerHTML = `<div class="error">❌ Ошибка загрузки: ${err.message}<br><br>Проверьте ссылку на папку и доступ к файлам.</div>`;
+            console.error(err);
+        }
+    }
+    
+    // ============================================================
+    // ФУНКЦИИ ПРОСМОТРА (без редактирования)
+    // ============================================================
+    
+    function getActiveHouses() {
+        return data.houses.filter(h => h.status === 'active');
+    }
+    
+    function getKeyringForHouse(houseId) {
+        const house = data.houses.find(h => h.id === houseId);
+        if (!house || !house.keyringId) return null;
+        return data.keyrings.find(k => k.id === house.keyringId);
+    }
+    
+    function getLocations(houseId) {
+        let locations = data.locations.filter(l => l.houseId === houseId);
+        return locations.sort((a, b) => (a.order || 9999) - (b.order || 9999));
+    }
+    
+    function filterHouses(housesArray) {
+        if (!searchQuery.trim()) return housesArray;
+        const q = searchQuery.toLowerCase();
+        return housesArray.filter(h => 
+            h.address.toLowerCase().includes(q) ||
+            (h.manager && h.manager.toLowerCase().includes(q)) ||
+            (h.uk && h.uk.toLowerCase().includes(q))
+        );
+    }
+    
+    function getSortedHouses(housesArray) {
+        const sorted = [...housesArray];
+        sorted.sort((a, b) => {
+            let valA = a[sortColumn] || '';
+            let valB = b[sortColumn] || '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+        return sorted;
+    }
+    
+    function getAccessPaths(locationId, visited = new Set()) {
+        const location = data.locations.find(l => l.id === locationId);
+        if (!location) return [];
+        if (!location.leadsTo || location.leadsTo.length === 0) return [[location]];
+        const paths = [];
+        location.leadsTo.forEach(parentId => {
+            if (visited.has(parentId)) return;
+            const newVisited = new Set(visited);
+            newVisited.add(locationId);
+            const parentPaths = getAccessPaths(parentId, newVisited);
+            parentPaths.forEach(path => paths.push([...path, location]));
+        });
+        return paths;
+    }
+    
+    // Рендер главного экрана (список домов)
+    function renderMainScreen() {
+        let houses = getActiveHouses();
+        houses = filterHouses(houses);
+        const sorted = getSortedHouses(houses);
+        
+        let tableRows = '';
+        sorted.forEach((house, index) => {
+            const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
+            tableRows += `<tr>
+                <td style="width: 50px;">${index + 1}</td>
+                <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(house.address)}</a></td>
+                <td>${escapeHtml(house.manager || '')}</td>
+                <td>${escapeHtml(house.uk || '')}</td>
+                <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
+            </tr>`;
+        });
+        
+        if (tableRows === '') {
+            tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
+        }
+        
+        const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
+        
+        return `
+            <div>
+                <div style="margin-bottom:20px;">
+                    <h1>🏠 База знаний МКД</h1>
+                    <div class="toolbar">
+                        <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
+                        <button id="refresh-btn">🔄 Обновить</button>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-sort="index">#</th>
+                                <th data-sort="address">Адрес${sortIcon('address')}</th>
+                                <th data-sort="manager">Управляющий${sortIcon('manager')}</th>
+                                <th data-sort="uk">УК${sortIcon('uk')}</th>
+                                <th>Цвет</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Рендер карточки дома
+    function renderHouseScreen() {
+        const house = data.houses.find(h => h.id === currentHouseId);
+        if (!house) return '<div class="error">Дом не найден</div>';
+        
+        const keyring = getKeyringForHouse(currentHouseId);
+        const locations = getLocations(currentHouseId);
+        const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
+        
+        let locationsRows = '';
+        locations.forEach(location => {
+            const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
+            let keysHtml = '';
+            if (location.keys && location.keys.length) {
+                keysHtml = location.keys.map(keyItem => {
+                    const keyId = typeof keyItem === 'string' ? keyItem : keyItem.keyId;
+                    const key = data.keys.find(k => k.id === keyId);
+                    if (!key) return '';
+                    const status = KEY_STATUS[key.status] || KEY_STATUS.ok;
+                    return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}</span>`;
+                }).join(' ');
+            }
+            
+            locationsRows += `<tr>
+                <td><strong>${escapeHtml(location.place)}</strong></td>
+                <td>${keysHtml || '—'}</td>
+                <td>${escapeHtml(location.code || '—')}</td>
+                <td>${escapeHtml(location.location || '—')}</td>
+                <td>${escapeHtml(location.note || '—')}</td>
+                <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
+            </tr>`;
+        });
+        
+        if (!locationsRows) {
+            locationsRows = `<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>`;
+        }
+        
+        return `
+            <div>
+                <div style="margin-bottom:20px;">
+                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b;">← Назад</button>
+                    <div style="margin-top: 15px;">
+                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; display: inline-block; margin-right: 10px;"></span>
+                        <h2 style="display: inline-block;">🏠 ${escapeHtml(house.address)}</h2>
+                    </div>
+                </div>
+                <div class="keyring-header">
+                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p>🔗 Ключи не указаны</p>'}
+                    <p><strong>УК:</strong> ${escapeHtml(house.uk || '—')}</p>
+                    <p><strong>Управляющий:</strong> ${escapeHtml(house.manager || '—')}</p>
+                    <p><strong>Примечание:</strong> ${escapeHtml(house.note || '—')}</p>
+                </div>
+                <h3>📍 Локации и доступы</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Локация</th>
+                                <th>Ключи</th>
+                                <th>Код</th>
+                                <th>Расположение</th>
+                                <th>Примечание</th>
+                                <th>Цвет</th>
+                            </tr>
+                        </thead>
+                        <tbody>${locationsRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Основной рендер
+    function renderApp() {
+        const container = document.getElementById('app');
+        if (!container) return;
+        
+        if (!data) {
+            container.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
+            return;
+        }
+        
+        switch(currentScreen) {
+            case 'main':
+                container.innerHTML = renderMainScreen();
+                break;
+            case 'house':
+                container.innerHTML = renderHouseScreen();
+                break;
+            default:
+                container.innerHTML = renderMainScreen();
+        }
+        
+        // Привязываем события
+        if (currentScreen === 'main') {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.oninput = (e) => {
+                    searchQuery = e.target.value;
+                    renderApp();
+                };
+            }
+            
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.onclick = () => loadDataFromDisk();
+            }
+            
+            // Сортировка
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.onclick = () => {
+                    const col = th.dataset.sort;
+                    if (col === 'index') return;
+                    if (sortColumn === col) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = col;
+                        sortDirection = 'asc';
+                    }
+                    renderApp();
+                };
+            });
+            
+            // Клик по дому
+            document.querySelectorAll('.house-link').forEach(link => {
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    currentHouseId = link.dataset.id;
+                    currentScreen = 'house';
+                    renderApp();
+                };
+            });
+        } else if (currentScreen === 'house') {
+            const backBtn = document.getElementById('back-btn');
+            if (backBtn) {
+                backBtn.onclick = () => {
+                    currentScreen = 'main';
+                    renderApp();
+                };
+            }
+        }
+    }
+    
+    // Запуск
+    loadDataFromDisk();
+</script>
+</body>
+</html>
