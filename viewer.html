@@ -3,170 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>Просмотр базы знаний МКД</title>
+    <title>База знаний МКД - Просмотр</title>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background: #f3f4f6;
-            padding: 12px;
-            min-height: 100vh;
-        }
-        .app {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        h1, h2, h3 {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #1e293b;
-        }
-        h1 { font-size: 1.5rem; }
-        h2 { font-size: 1.3rem; }
-        
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #1d4ed8;
-        }
-        
-        .search-box {
-            flex: 1 1 250px;
-            padding: 10px 14px;
-            border-radius: 40px;
-            border: 1px solid #cbd5e1;
-            font-size: 0.9rem;
-        }
-        
-        .color-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-left: 5px;
-        }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
+        .app { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 20px; }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between; }
+        button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; }
+        .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; margin-left: 5px; }
         .status-ok { background: #44cc44; color: white; }
         .status-plumber { background: #4444ff; color: white; }
         .status-unverified { background: #ffcc00; color: black; }
         .status-broken { background: #ff4444; color: white; }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-        th {
-            background: #f8fafc;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #e2e8f0;
-            position: sticky;
-            top: 0;
-        }
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #e2e8f0;
-            vertical-align: top;
-        }
-        
-        .empty-message {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-            font-style: italic;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #2563eb;
-        }
-        
-        .error {
-            text-align: center;
-            padding: 40px;
-            color: #ef4444;
-        }
-        
-        .keyring-header {
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 600px) {
-            .app { padding: 12px; }
-            th, td { padding: 8px 4px; font-size: 0.85rem; }
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        th { background: #f8fafc; padding: 12px 8px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .empty-message, .loading, .error { text-align: center; padding: 40px; }
+        .loading { color: #2563eb; }
+        .error { color: #ef4444; }
+        .keyring-header { background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
+        @media (max-width: 600px) { .app { padding: 12px; } th, td { padding: 8px 4px; } }
     </style>
 </head>
 <body>
-<div class="app" id="app">
-    <div class="loading">⏳ Загрузка данных...</div>
-</div>
+<div class="app" id="app"><div class="loading">⏳ Загрузка данных...</div></div>
 
 <script>
     // ============================================================
     // НАСТРОЙКИ - ВСТАВЬТЕ ВАШУ ПУБЛИЧНУЮ ССЫЛКУ НА ПАПКУ
     // ============================================================
-    // Пример: const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/abc123def456';
-    const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/DZhcbq4m42teSg';
+    const FOLDER_PUBLIC_LINK = 'https://disk.yandex.ru/d/DZhcbq4m42teSg';  // ← ВАША ССЫЛКА
     
-    // ============================================================
-    // ПРИЛОЖЕНИЕ ДЛЯ ПРОСМОТРА (ТОЛЬКО ЧТЕНИЕ)
-    // ============================================================
-    
-    let data = null;           // загруженные данные
-    let currentScreen = 'main';
-    let currentHouseId = null;
-    let sortColumn = 'address';
-    let sortDirection = 'asc';
-    let searchQuery = '';
-    
-    // Цвета (копия из админки)
+    // Цвета
     const COLORS = {
-        red: { name: 'Красный', desc: 'критично', bg: '#ffe6e6', dot: '#ff4444' },
-        orange: { name: 'Оранжевый', desc: 'через людей', bg: '#fff0e6', dot: '#ff8800' },
-        yellow: { name: 'Жёлтый', desc: 'проверить', bg: '#fff3cd', dot: '#ffcc00' },
-        green: { name: 'Зелёный', desc: 'в порядке', bg: '#e6ffe6', dot: '#44cc44' },
-        blue: { name: 'Синий', desc: 'у сантехников', bg: '#e6f3ff', dot: '#4444ff' },
-        '': { name: 'Без цвета', desc: '', bg: '#ffffff', dot: '#cccccc' }
+        red: { name: 'Красный', bg: '#ffe6e6', dot: '#ff4444' },
+        orange: { name: 'Оранжевый', bg: '#fff0e6', dot: '#ff8800' },
+        yellow: { name: 'Жёлтый', bg: '#fff3cd', dot: '#ffcc00' },
+        green: { name: 'Зелёный', bg: '#e6ffe6', dot: '#44cc44' },
+        blue: { name: 'Синий', bg: '#e6f3ff', dot: '#4444ff' },
+        '': { name: 'Без цвета', bg: '#ffffff', dot: '#cccccc' }
     };
     
     const KEY_STATUS = {
@@ -176,32 +55,48 @@
         broken: { name: 'Сломан', badge: 'status-broken', icon: '🔴' }
     };
     
+    let data = null;
+    let currentScreen = 'main';
+    let currentHouseId = null;
+    let sortColumn = 'address';
+    let sortDirection = 'asc';
+    let searchQuery = '';
+    
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     
-    // Получение публичного ID папки из ссылки
-    function getPublicIdFromLink(link) {
-        const match = link.match(/d\/([a-zA-Z0-9_-]+)/);
-        return match ? match[1] : null;
+    // Получение public_key из ссылки
+    async function getPublicKeyFromLink(link) {
+        // Пробуем получить через API
+        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(link)}`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('Не удалось получить публичный ключ');
+        const data = await response.json();
+        return data.public_key;
     }
     
-    // Загрузка списка файлов из публичной папки (рабочая версия)
-async function getPublicFolderFiles(publicId) {
-    // Используем правильный API-метод с указанием public_key
-    const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(publicId)}`;
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error('Ошибка загрузки списка папки');
-    const data = await response.json();
-    return data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
-}
+    // Загрузка списка файлов из папки
+    async function getPublicFolderFiles(publicKey) {
+        const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(publicKey)}&limit=50`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('Ошибка загрузки списка');
+        const data = await response.json();
+        if (!data._embedded || !data._embedded.items) throw new Error('Нет файлов в папке');
+        const jsonFiles = data._embedded.items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
+        if (jsonFiles.length === 0) throw new Error('Нет JSON файлов');
+        return jsonFiles;
+    }
     
-    // Загрузка файла по публичной ссылке
-    async function downloadPublicFile(publicUrl) {
-        const response = await fetch(publicUrl);
-        if (!response.ok) throw new Error('Ошибка загрузки файла');
-        return await response.json();
+    // Скачивание файла по пути
+    async function downloadFileByPath(filePath, publicKey) {
+        const downloadUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(publicKey)}&path=${encodeURIComponent(filePath)}`;
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error('Ошибка получения ссылки на файл');
+        const data = await response.json();
+        const fileResponse = await fetch(data.href);
+        return await fileResponse.json();
     }
     
     // Главная загрузка данных
@@ -210,21 +105,19 @@ async function getPublicFolderFiles(publicId) {
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         
         try {
-            const publicId = getPublicIdFromLink(FOLDER_PUBLIC_LINK);
-            if (!publicId) throw new Error('Не удалось распознать ссылку на папку');
+            // Получаем public_key
+            const publicKey = await getPublicKeyFromLink(FOLDER_PUBLIC_LINK);
             
             // Получаем список файлов
-            const files = await getPublicFolderFiles(publicId);
-            if (files.length === 0) throw new Error('Нет файлов в папке');
+            const files = await getPublicFolderFiles(publicKey);
             
             // Сортируем по дате изменения (новые сверху)
             files.sort((a, b) => new Date(b.modified) - new Date(a.modified));
             const latestFile = files[0];
             
             // Загружаем самый свежий файл
-            const jsonData = await downloadPublicFile(latestFile.file);
+            const jsonData = await downloadFileByPath(latestFile.path, publicKey);
             
-            // Проверяем структуру
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
                 throw new Error('Неверный формат файла');
             }
@@ -232,13 +125,13 @@ async function getPublicFolderFiles(publicId) {
             data = jsonData;
             renderApp();
         } catch (err) {
-            appDiv.innerHTML = `<div class="error">❌ Ошибка загрузки: ${err.message}<br><br>Проверьте ссылку на папку и доступ к файлам.</div>`;
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Проверьте ссылку на папку и доступ к файлам.</div>`;
             console.error(err);
         }
     }
     
     // ============================================================
-    // ФУНКЦИИ ПРОСМОТРА (без редактирования)
+    // ФУНКЦИИ ПРОСМОТРА
     // ============================================================
     
     function getActiveHouses() {
@@ -252,8 +145,7 @@ async function getPublicFolderFiles(publicId) {
     }
     
     function getLocations(houseId) {
-        let locations = data.locations.filter(l => l.houseId === houseId);
-        return locations.sort((a, b) => (a.order || 9999) - (b.order || 9999));
+        return data.locations.filter(l => l.houseId === houseId).sort((a, b) => (a.order || 9999) - (b.order || 9999));
     }
     
     function filterHouses(housesArray) {
@@ -267,8 +159,7 @@ async function getPublicFolderFiles(publicId) {
     }
     
     function getSortedHouses(housesArray) {
-        const sorted = [...housesArray];
-        sorted.sort((a, b) => {
+        return [...housesArray].sort((a, b) => {
             let valA = a[sortColumn] || '';
             let valB = b[sortColumn] || '';
             if (typeof valA === 'string') valA = valA.toLowerCase();
@@ -277,7 +168,6 @@ async function getPublicFolderFiles(publicId) {
             if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
-        return sorted;
     }
     
     function getAccessPaths(locationId, visited = new Set()) {
@@ -295,7 +185,6 @@ async function getPublicFolderFiles(publicId) {
         return paths;
     }
     
-    // Рендер главного экрана (список домов)
     function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
@@ -313,9 +202,7 @@ async function getPublicFolderFiles(publicId) {
             </tr>`;
         });
         
-        if (tableRows === '') {
-            tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
-        }
+        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         
@@ -324,7 +211,7 @@ async function getPublicFolderFiles(publicId) {
                 <div style="margin-bottom:20px;">
                     <h1>🏠 База знаний МКД</h1>
                     <div class="toolbar">
-                        <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
+                        <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
                         <button id="refresh-btn">🔄 Обновить</button>
                     </div>
                 </div>
@@ -346,7 +233,6 @@ async function getPublicFolderFiles(publicId) {
         `;
     }
     
-    // Рендер карточки дома
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
@@ -379,9 +265,7 @@ async function getPublicFolderFiles(publicId) {
             </tr>`;
         });
         
-        if (!locationsRows) {
-            locationsRows = `<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>`;
-        }
+        if (!locationsRows) locationsRows = `<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>`;
         
         return `
             <div>
@@ -393,103 +277,55 @@ async function getPublicFolderFiles(publicId) {
                     </div>
                 </div>
                 <div class="keyring-header">
-                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || 'место не указано')})</p>` : '<p>🔗 Ключи не указаны</p>'}
+                    ${keyring ? `<p><strong>🔗 Связка ключей:</strong> ${escapeHtml(keyring.name)} (${escapeHtml(keyring.location || '—')})</p>` : '<p>🔗 Ключи не указаны</p>'}
                     <p><strong>УК:</strong> ${escapeHtml(house.uk || '—')}</p>
                     <p><strong>Управляющий:</strong> ${escapeHtml(house.manager || '—')}</p>
                     <p><strong>Примечание:</strong> ${escapeHtml(house.note || '—')}</p>
                 </div>
-                <h3>📍 Локации и доступы</h3>
+                <h3>📍 Локации</h3>
                 <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Локация</th>
-                                <th>Ключи</th>
-                                <th>Код</th>
-                                <th>Расположение</th>
-                                <th>Примечание</th>
-                                <th>Цвет</th>
-                            </tr>
-                        </thead>
-                        <tbody>${locationsRows}</tbody>
-                    </table>
+                    <table><thead><tr><th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Примечание</th><th>Цвет</th></tr></thead>
+                    <tbody>${locationsRows}</tbody>
+                </table>
                 </div>
             </div>
         `;
     }
     
-    // Основной рендер
     function renderApp() {
         const container = document.getElementById('app');
         if (!container) return;
-        
-        if (!data) {
-            container.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
-            return;
-        }
+        if (!data) { container.innerHTML = '<div class="loading">⏳ Загрузка...</div>'; return; }
         
         switch(currentScreen) {
-            case 'main':
-                container.innerHTML = renderMainScreen();
-                break;
-            case 'house':
-                container.innerHTML = renderHouseScreen();
-                break;
-            default:
-                container.innerHTML = renderMainScreen();
+            case 'main': container.innerHTML = renderMainScreen(); break;
+            case 'house': container.innerHTML = renderHouseScreen(); break;
+            default: container.innerHTML = renderMainScreen();
         }
         
-        // Привязываем события
         if (currentScreen === 'main') {
             const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                searchInput.oninput = (e) => {
-                    searchQuery = e.target.value;
-                    renderApp();
-                };
-            }
-            
+            if (searchInput) searchInput.oninput = (e) => { searchQuery = e.target.value; renderApp(); };
             const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) {
-                refreshBtn.onclick = () => loadDataFromDisk();
-            }
-            
-            // Сортировка
+            if (refreshBtn) refreshBtn.onclick = () => loadDataFromDisk();
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.onclick = () => {
                     const col = th.dataset.sort;
                     if (col === 'index') return;
-                    if (sortColumn === col) {
-                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        sortColumn = col;
-                        sortDirection = 'asc';
-                    }
+                    if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    else { sortColumn = col; sortDirection = 'asc'; }
                     renderApp();
                 };
             });
-            
-            // Клик по дому
             document.querySelectorAll('.house-link').forEach(link => {
-                link.onclick = (e) => {
-                    e.preventDefault();
-                    currentHouseId = link.dataset.id;
-                    currentScreen = 'house';
-                    renderApp();
-                };
+                link.onclick = (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); };
             });
         } else if (currentScreen === 'house') {
             const backBtn = document.getElementById('back-btn');
-            if (backBtn) {
-                backBtn.onclick = () => {
-                    currentScreen = 'main';
-                    renderApp();
-                };
-            }
+            if (backBtn) backBtn.onclick = () => { currentScreen = 'main'; renderApp(); };
         }
     }
     
-    // Запуск
     loadDataFromDisk();
 </script>
 </body>
