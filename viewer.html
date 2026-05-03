@@ -57,8 +57,6 @@
     let sortColumn = 'address';
     let sortDirection = 'asc';
     let searchQuery = '';
-    
-    // Переменная для хранения позиции курсора в поиске
     let searchCursorPos = 0;
     
     function escapeHtml(unsafe) {
@@ -144,16 +142,20 @@
         let tableRows = '';
         sorted.forEach((house, index) => {
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
-            tableRows += `<tr>
-                <td>${index + 1}</td>
-                <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(house.address)}</a></td>
-                <td>${escapeHtml(house.manager || '')}</td>
-                <td>${escapeHtml(house.uk || '')}</td>
-                <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-            </tr>`;
+            tableRows += `
+                <tr style="background: ${house.color ? COLORS[house.color]?.bg || '' : ''}">
+                    <td style="width: 50px;">${index + 1}</td>
+                    <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(house.address)}</a></td>
+                    <td>${escapeHtml(house.manager || '')}</td>
+                    <td>${escapeHtml(house.uk || '')}</td>
+                    <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
+                </tr>
+            `;
         });
         
-        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
+        if (tableRows === '') {
+            tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        }
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         
@@ -167,7 +169,7 @@
                     </div>
                 </div>
                 <div style="overflow-x: auto;">
-                    <tr>
+                    <table>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
@@ -206,17 +208,21 @@
                 }).join(' ');
             }
             
-            locationsRows += `<tr>
-                <td><strong>${escapeHtml(location.place)}</strong></td>
-                <td>${keysHtml || '—'}</td>
-                <td>${escapeHtml(location.code || '—')}</td>
-                <td>${escapeHtml(location.location || '—')}</td>
-                <td>${escapeHtml(location.note || '—')}</td>
-                <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-            </tr>`;
+            locationsRows += `
+                <tr>
+                    <td><strong>${escapeHtml(location.place)}</strong></td>
+                    <td>${keysHtml || '—'}</td>
+                    <td>${escapeHtml(location.code || '—')}</td>
+                    <td>${escapeHtml(location.location || '—')}</td>
+                    <td>${escapeHtml(location.note || '—')}</td>
+                    <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
+                </tr>
+            `;
         });
         
-        if (!locationsRows) locationsRows = `<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>`;
+        if (!locationsRows) {
+            locationsRows = '<tr><td colspan="6" class="empty-message">Нет локаций</td></tr>';
+        }
         
         return `
             <div>
@@ -236,7 +242,16 @@
                 <h3>📍 Локации</h3>
                 <div style="overflow-x: auto;">
                     <table>
-                        <thead><tr><th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Примечание</th><th>Цвет</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Локация</th>
+                                <th>Ключи</th>
+                                <th>Код</th>
+                                <th>Расположение</th>
+                                <th>Примечание</th>
+                                <th>Цвет</th>
+                            </tr>
+                        </thead>
                         <tbody>${locationsRows}</tbody>
                     </table>
                 </div>
@@ -258,17 +273,14 @@
         }
         
         if (currentScreen === 'main') {
-            // Восстанавливаем значение поиска
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.value = currentSearchQuery;
                 
-                // Обработчик ввода с сохранением позиции курсора
                 searchInput.addEventListener('input', (e) => {
                     searchQuery = e.target.value;
                     searchCursorPos = e.target.selectionStart;
                     renderApp();
-                    // После перерисовки восстанавливаем фокус и позицию курсора
                     setTimeout(() => {
                         const restoredInput = document.getElementById('search-input');
                         if (restoredInput) {
