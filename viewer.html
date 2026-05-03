@@ -33,11 +33,8 @@
 
 <script>
     // ============================================================
-    // НАСТРОЙКА — ССЫЛКА НА ФАЙЛ (ВАША ПРОВЕРЕННАЯ ССЫЛКА)
+    // ЦВЕТА И СТАТУСЫ
     // ============================================================
-    const FILE_PUBLIC_LINK = 'https://disk.yandex.ru/d/FUURpMQ5g9GihQ';
-    
-    // Цвета
     const COLORS = {
         red: { name: 'Красный', bg: '#ffe6e6', dot: '#ff4444' },
         orange: { name: 'Оранжевый', bg: '#fff0e6', dot: '#ff8800' },
@@ -67,29 +64,16 @@
     }
     
     // ============================================================
-    // ЗАГРУЗКА ДАННЫХ — ПРЯМОЙ ЗАПРОС К ФАЙЛУ ЧЕРЕЗ API
+    // ЗАГРУЗКА ДАННЫХ ИЗ ЛОКАЛЬНОГО ФАЙЛА data.json
     // ============================================================
-    async function loadDataFromDisk() {
+    async function loadData() {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         
         try {
-            // Получаем ID из ссылки
-            const match = FILE_PUBLIC_LINK.match(/d\/([A-Za-z0-9_-]+)/);
-            if (!match) throw new Error('Не удалось распознать ссылку');
-            const fileId = match[1];
-            
-            // Запрашиваем ссылку на скачивание через API Яндекс.Диска
-            const apiUrl = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${fileId}`;
-            const response = await fetch(apiUrl);
-            
-            if (!response.ok) {
-                throw new Error(`Ошибка API: ${response.status} — файл не найден или нет публичного доступа`);
-            }
-            
-            const downloadData = await response.json();
-            const fileResponse = await fetch(downloadData.href);
-            const jsonData = await fileResponse.json();
+            const response = await fetch('data.json');
+            if (!response.ok) throw new Error(`Файл data.json не найден (${response.status})`);
+            const jsonData = await response.json();
             
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) {
                 throw new Error('Файл не соответствует формату базы знаний');
@@ -102,19 +86,15 @@
             appDiv.innerHTML = `
                 <div class="error">
                     ❌ Ошибка загрузки: ${err.message}<br><br>
-                    <strong>Проверьте:</strong><br>
-                    1. Что файл на Яндекс.Диске расшарен как "Доступ по ссылке"<br>
-                    2. Что ссылка скопирована именно на файл (.json), а не на папку<br>
-                    3. Откройте ссылку в режиме инкогнито — должен скачаться файл<br><br>
-                    <a href="${FILE_PUBLIC_LINK}" target="_blank">🔗 Открыть файл на Яндекс.Диске</a><br><br>
-                    <button onclick="location.reload()">🔄 Попробовать снова</button>
+                    <strong>Файл data.json не найден в репозитории.</strong><br>
+                    Пожалуйста, загрузите актуальный файл базы знаний в репозиторий.
                 </div>
             `;
         }
     }
     
     // ============================================================
-    // ФУНКЦИИ ПРОСМОТРА
+    // ФУНКЦИИ ПРОСМОТРА (ТЕ ЖЕ, ЧТО В АДМИНКЕ)
     // ============================================================
     
     function getActiveHouses() {
@@ -170,7 +150,7 @@
             </tr>`;
         });
         
-        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></table>`;
+        if (tableRows === '') tableRows = `<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>`;
         
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         
@@ -276,7 +256,7 @@
             const searchInput = document.getElementById('search-input');
             if (searchInput) searchInput.addEventListener('input', (e) => { searchQuery = e.target.value; renderApp(); });
             const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) refreshBtn.addEventListener('click', () => loadDataFromDisk());
+            if (refreshBtn) refreshBtn.addEventListener('click', () => loadData());
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
                     const col = th.dataset.sort;
@@ -296,7 +276,7 @@
     }
     
     // Запуск
-    loadDataFromDisk();
+    loadData();
 </script>
 </body>
 </html>
