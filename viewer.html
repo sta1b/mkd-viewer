@@ -225,7 +225,7 @@
     }
 
     // ==================== ОСНОВНЫЕ ЭКРАНЫ ====================
-    function renderMainScreen() {
+        function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -235,8 +235,6 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}${escapeHtml(house.manager || '')}${escapeHtml(house.uk || '')}
-
                     <td style="width: 50px;">${index + 1}</td>
                     <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
