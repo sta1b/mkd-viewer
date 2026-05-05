@@ -25,15 +25,12 @@
         th { background: #f8fafc; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; cursor: pointer; position: sticky; top: 0; z-index: 10; }
         th:hover { background: #e2e8f0; }
         td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-        
-        /* Фиксированная ширина колонок */
         th:first-child { width: 50px; }
         th:nth-child(2) { min-width: 200px; }
         th:nth-child(3) { width: 120px; }
         th:nth-child(4) { width: 120px; }
         th:last-child { width: 60px; }
         td:last-child { text-align: center; }
-        
         .empty-message, .loading, .error { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
         .loading { color: #2563eb; font-style: normal; }
         .error { color: #ef4444; font-style: normal; }
@@ -45,7 +42,8 @@
         .tooltip-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
         .login-box { max-width: 400px; margin: 50px auto; text-align: center; background: white; padding: 30px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .login-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 1rem; }
-        .login-box button { width: 100%; }
+        .login-box button { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+        .login-box button:hover { background: #1d4ed8; }
         @media (max-width: 600px) {
             .app { padding: 12px; }
             th, td { padding: 8px 4px; font-size: 0.85rem; }
@@ -60,8 +58,8 @@
 
 <script>
     // ==================== НАСТРОЙКИ ====================
-    // ⚠️ ВСТАВЬТЕ СВОЙ ХЕШ (полученный из crypto-tool.html)
-    const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';  // ← ЗАМЕНИТЕ НА ВАШ ХЕШ!
+    // Хеш от логина и пароля (получен из crypto-tool.html)
+    const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';
     
     // ==================== ОСТАЛЬНОЙ КОД ====================
     const COLORS = {
@@ -121,14 +119,14 @@
             const encrypted = await response.text();
             const key = login + ':' + password;
             const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error('Не удалось расшифровать. Проверьте логин и пароль.');
+            if (!decrypted) throw new Error('Не удалось расшифровать');
             const jsonData = JSON.parse(decrypted);
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
             data = jsonData;
             renderApp();
         } catch (err) {
             console.error(err);
-            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Возможно, неверный логин/пароль или повреждён файл данных.</div>`;
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}</div>`;
         }
     }
 
@@ -205,10 +203,10 @@
         let photosHtml = '';
         if (location.photos && location.photos.length > 0) {
             photosHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">' +
-                location.photos.map(photo => `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f8fafc; border-radius: 12px;"><a href="${escapeHtml(photo.url)}" target="_blank" style="color: #2563eb; text-decoration: none;">📸 ${escapeHtml(photo.description || 'Фото')}</a></div>`).join('') +
+                location.photos.map(photo => `<div><a href="${escapeHtml(photo.url)}" target="_blank">📸 ${escapeHtml(photo.description || 'Фото')}</a></div>`).join('') +
                 '</div>';
         } else {
-            photosHtml = '<p style="color: #64748b;">Фотографии не добавлены</p>';
+            photosHtml = '<p>Фотографии не добавлены</p>';
         }
         return `
             <div>
@@ -220,7 +218,7 @@
                     <p><strong>🏠 Дом:</strong> ${escapeHtml(house?.address || '')}</p>
                 </div>
                 <h3>📍 Дерево доступов</h3>
-                <div style="background:white; padding:20px; border-radius:16px; margin-bottom:30px;">${treeHtml}</div>
+                <div style="background:white; padding:20px; border-radius:16px;">${treeHtml}</div>
                 <h3>📸 Фотографии</h3>
                 <div style="background:#f8fafc; padding:16px; border-radius:20px;">${photosHtml}</div>
             </div>
@@ -257,7 +255,7 @@
                     <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b;">🔄 Обновить</button>
                 </div>
                 <div class="toolbar">
-                    <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
+                    <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div class="table-container">
                     <table>
@@ -305,16 +303,13 @@
                 accessHtml = '🚪 улица';
             } else {
                 const paths = getAccessPaths(location.id);
-                if (paths.length === 0) {
-                    accessHtml = '—';
-                } else if (paths.length === 1) {
+                if (paths.length === 0) accessHtml = '—';
+                else if (paths.length === 1) {
                     const route = paths[0].slice(0, -1);
-                    if (route.length === 0) accessHtml = '—';
-                    else accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
+                    accessHtml = route.length ? route.map(l => escapeHtml(l.place)).join(' → ') : '—';
                 } else {
                     const mainPath = paths[0].slice(0, -1);
-                    if (mainPath.length === 0) accessHtml = '—';
-                    else accessHtml = `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>`;
+                    accessHtml = mainPath.length ? `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>` : '—';
                 }
             }
             locationsRows += `
@@ -388,9 +383,7 @@
                     }, 10);
                 });
             }
-            document.getElementById('refresh-btn')?.addEventListener('click', () => {
-                location.reload();
-            });
+            document.getElementById('refresh-btn')?.addEventListener('click', () => location.reload());
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
                     if (th.dataset.sort === 'index') return;
@@ -402,8 +395,6 @@
             document.querySelectorAll('.house-link').forEach(link => {
                 link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
             });
-            
-            // Восстановление прокрутки к последнему выбранному дому
             if (lastSelectedHouseId) {
                 setTimeout(() => {
                     const houseLink = document.querySelector(`.house-link[data-id="${lastSelectedHouseId}"]`);
@@ -414,14 +405,11 @@
                 }, 100);
             }
         } else if (currentScreen === 'house') {
-            const backBtn = document.getElementById('back-btn');
-            if (backBtn) {
-                backBtn.addEventListener('click', () => {
-                    lastSelectedHouseId = currentHouseId;
-                    currentScreen = 'main';
-                    renderApp();
-                });
-            }
+            document.getElementById('back-btn')?.addEventListener('click', () => {
+                lastSelectedHouseId = currentHouseId;
+                currentScreen = 'main';
+                renderApp();
+            });
             document.querySelectorAll('.location-link').forEach(link => {
                 link.addEventListener('click', (e) => { e.preventDefault(); currentLocationId = link.dataset.id; currentScreen = 'location'; renderApp(); });
             });
@@ -430,16 +418,19 @@
         }
     }
 
-    // СТАРТ: форма входа
+    // СТАРТ: форма входа со стандартным form, чтобы браузер запоминал пароль
     document.getElementById('app').innerHTML = `
         <div class="login-box" id="login-box">
             <h2>🔐 Доступ к базе знаний</h2>
-            <input type="text" id="login-input" placeholder="Логин" autocomplete="off">
-            <input type="text" id="password-input" placeholder="Пароль" autocomplete="off">
-            <button id="login-btn">Войти</button>
+            <form id="login-form" onsubmit="return false;">
+                <input type="text" id="login-input" name="login" placeholder="Логин" autocomplete="username" value="">
+                <input type="text" id="password-input" name="password" placeholder="Пароль" autocomplete="current-password" value="">
+                <button type="submit" id="login-btn">Войти</button>
+            </form>
         </div>
     `;
-    document.getElementById('login-btn').addEventListener('click', () => {
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
         const login = document.getElementById('login-input').value.trim();
         const password = document.getElementById('password-input').value;
         const hash = CryptoJS.SHA256(login + ':' + password).toString();
