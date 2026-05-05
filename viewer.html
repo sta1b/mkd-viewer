@@ -21,10 +21,19 @@
         .status-unverified { background: #ffcc00; color: black; }
         .status-broken { background: #ff4444; color: white; }
         .table-container { overflow-x: auto; max-height: 70vh; overflow-y: auto; border-radius: 20px; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 650px; }
         th { background: #f8fafc; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; cursor: pointer; position: sticky; top: 0; z-index: 10; }
         th:hover { background: #e2e8f0; }
         td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        
+        /* Фиксированная ширина колонок */
+        th:first-child { width: 50px; }
+        th:nth-child(2) { min-width: 200px; }
+        th:nth-child(3) { width: 120px; }
+        th:nth-child(4) { width: 120px; }
+        th:last-child { width: 60px; }
+        td:last-child { text-align: center; }
+        
         .empty-message, .loading, .error { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
         .loading { color: #2563eb; font-style: normal; }
         .error { color: #ef4444; font-style: normal; }
@@ -42,7 +51,7 @@
             th, td { padding: 8px 4px; font-size: 0.85rem; }
             .legend-tooltip .tooltip-text { white-space: normal; width: 250px; left: auto; right: 0; transform: none; }
             .legend-tooltip .tooltip-text::before { left: auto; right: 20px; }
-            table { min-width: 600px; }
+            table { min-width: 550px; }
         }
     </style>
 </head>
@@ -54,7 +63,7 @@
     // ⚠️ ВСТАВЬТЕ СВОЙ ХЕШ (полученный из crypto-tool.html)
     const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';  // ← ЗАМЕНИТЕ НА ВАШ ХЕШ!
     
-    // ==================== ОСТАЛЬНОЙ КОД VIEWER ====================
+    // ==================== ОСТАЛЬНОЙ КОД ====================
     const COLORS = {
         red: { name: 'Красный', desc: 'критично (нет ключа)', bg: '#ffe6e6', dot: '#ff4444' },
         orange: { name: 'Оранжевый', desc: 'доступ через третьих лиц', bg: '#fff0e6', dot: '#ff8800' },
@@ -76,6 +85,7 @@
     let currentScreen = 'main';
     let currentHouseId = null;
     let currentLocationId = null;
+    let lastSelectedHouseId = null;
     let sortColumn = 'address';
     let sortDirection = 'asc';
     let searchQuery = '';
@@ -217,7 +227,7 @@
         `;
     }
 
-        function renderMainScreen() {
+    function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -227,7 +237,7 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}<td>
+                    <td style="width: 50px;">${index + 1}</td>
                     <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
@@ -266,6 +276,7 @@
             </div>
         `;
     }
+
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
@@ -391,8 +402,26 @@
             document.querySelectorAll('.house-link').forEach(link => {
                 link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
             });
+            
+            // Восстановление прокрутки к последнему выбранному дому
+            if (lastSelectedHouseId) {
+                setTimeout(() => {
+                    const houseLink = document.querySelector(`.house-link[data-id="${lastSelectedHouseId}"]`);
+                    if (houseLink) {
+                        houseLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        lastSelectedHouseId = null;
+                    }
+                }, 100);
+            }
         } else if (currentScreen === 'house') {
-            document.getElementById('back-btn')?.addEventListener('click', () => { currentScreen = 'main'; renderApp(); });
+            const backBtn = document.getElementById('back-btn');
+            if (backBtn) {
+                backBtn.addEventListener('click', () => {
+                    lastSelectedHouseId = currentHouseId;
+                    currentScreen = 'main';
+                    renderApp();
+                });
+            }
             document.querySelectorAll('.location-link').forEach(link => {
                 link.addEventListener('click', (e) => { e.preventDefault(); currentLocationId = link.dataset.id; currentScreen = 'location'; renderApp(); });
             });
@@ -401,7 +430,7 @@
         }
     }
 
-    // СТАРТ: показываем форму ввода логина и пароля (ПАРОЛЬ ВИДЕН)
+    // СТАРТ: форма входа
     document.getElementById('app').innerHTML = `
         <div class="login-box" id="login-box">
             <h2>🔐 Доступ к базе знаний</h2>
