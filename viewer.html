@@ -217,7 +217,7 @@
         `;
     }
 
-    function renderMainScreen() {
+        function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -227,18 +227,14 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}${escapeHtml(house.manager || '')}${escapeHtml(house.uk || '')}
-
-                    <td style="width: 50px;">${index + 1}${escapeHtml(house.manager || '')}${escapeHtml(house.uk || '')}
-
-                    <td style="width: 50px;">${index + 1}</td>
+                    <td style="width: 50px;">${index + 1}<td>
                     <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов<table></tr>';
+        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -254,7 +250,7 @@
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div class="table-container">
-                    <td>
+                    <table>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
@@ -270,7 +266,6 @@
             </div>
         `;
     }
-
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
