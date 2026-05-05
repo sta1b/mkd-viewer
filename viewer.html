@@ -428,17 +428,20 @@
         `;
     }
 
-    function renderHouseScreen() {
+        function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
+        
         const keyring = getKeyringForHouse(currentHouseId);
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
         const houseBgColor = house.color ? COLORS[house.color]?.bg || '' : '';
+        
         let locationsRows = '';
         locations.forEach(location => {
             const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
+            
             let keysHtml = '';
             if (location.keys && location.keys.length) {
                 keysHtml = location.keys.map(keyItem => {
@@ -451,20 +454,25 @@
                     return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}${note ? ` (${escapeHtml(note)})` : ''}</span>`;
                 }).join(' ');
             }
+            
             let accessHtml = '';
             if (location.entryFromStreet) {
                 accessHtml = '🚪 улица';
             } else {
                 const paths = getAccessPaths(location.id);
-                if (paths.length === 0) accessHtml = '—';
-                else if (paths.length === 1) {
+                if (paths.length === 0) {
+                    accessHtml = '—';
+                } else if (paths.length === 1) {
                     const route = paths[0].slice(0, -1);
-                    accessHtml = route.length ? route.map(l => escapeHtml(l.place)).join(' → ') : '—';
+                    if (route.length === 0) accessHtml = '—';
+                    else accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
                 } else {
                     const mainPath = paths[0].slice(0, -1);
-                    accessHtml = mainPath.length ? `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>` : '—';
+                    if (mainPath.length === 0) accessHtml = '—';
+                    else accessHtml = `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>`;
                 }
             }
+            
             locationsRows += `
                 <tr style="background: ${bgColor};">
                     <td><a href="#" class="location-link" data-id="${location.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(location.place)}</a></td>
@@ -474,18 +482,20 @@
                     <td>${accessHtml}</td>
                     <td>${escapeHtml(location.note || '—')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-                </tr>`;
+                </td>`;
         });
+        
         if (locationsRows === '') locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
+        
         return `
             <div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
-                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b;">← Назад</button>
+                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">← Назад</button>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px;"></span>
+                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; border-radius: 50%;"></span>
                         <h2 style="margin:0;">🏠 ${escapeHtml(house.address)}</h2>
                     </div>
-                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px;">
+                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem;">
                         ${house.category === 'withKeys' ? '🔑 Ключи в наличии' : (house.category === 'noKeys' ? '🚪 Бесключевой доступ' : '⚠️ Требует внимания')}
                     </div>
                     <div style="flex:1"></div>
@@ -499,7 +509,7 @@
                 </div>
                 <h3>📍 Локации и доступы</h3>
                 <div class="table-container">
-                    </table>
+                    <table>
                         <thead>
                             <tr>
                                 <th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Вход через</th><th>Комментарий</th><th>Цвет</th>
