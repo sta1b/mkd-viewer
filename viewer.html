@@ -58,7 +58,6 @@
 
 <script>
     // ==================== НАСТРОЙКИ ====================
-    // Хеш от логина и пароля (получен из crypto-tool.html)
     const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';
     
     // ==================== ОСТАЛЬНОЙ КОД ====================
@@ -242,7 +241,7 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        if (tableRows === '') tableRows = '</table><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -418,13 +417,14 @@
         }
     }
 
-    // СТАРТ: форма входа со стандартным form, чтобы браузер запоминал пароль
+    // СТАРТ: форма входа с сохранением логина в localStorage
+    const savedLogin = localStorage.getItem('saved_login') || '';
     document.getElementById('app').innerHTML = `
         <div class="login-box" id="login-box">
             <h2>🔐 Доступ к базе знаний</h2>
-            <form id="login-form" onsubmit="return false;">
-                <input type="text" id="login-input" name="login" placeholder="Логин" autocomplete="username" value="">
-                <input type="text" id="password-input" name="password" placeholder="Пароль" autocomplete="current-password" value="">
+            <form id="login-form" action="#" method="post" onsubmit="return false;">
+                <input type="text" id="login-input" name="login" placeholder="Логин" autocomplete="username" value="${savedLogin.replace(/"/g, '&quot;')}">
+                <input type="text" id="password-input" name="password" placeholder="Пароль" autocomplete="current-password">
                 <button type="submit" id="login-btn">Войти</button>
             </form>
         </div>
@@ -435,10 +435,12 @@
         const password = document.getElementById('password-input').value;
         const hash = CryptoJS.SHA256(login + ':' + password).toString();
         if (hash === SECRET_HASH) {
+            localStorage.setItem('saved_login', login);
             loadData(login, password);
         } else {
             alert('Неверный логин или пароль');
         }
+        return false;
     });
 </script>
 </body>
