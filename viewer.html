@@ -44,6 +44,9 @@
         .login-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 1rem; }
         .login-box button { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 40px; cursor: pointer; font-weight: 500; }
         .login-box button:hover { background: #1d4ed8; }
+        .status-banner { background: #f8fafc; border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: #475569; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .update-btn { background: #e2e8f0; color: #1e293b; padding: 4px 12px; font-size: 0.75rem; box-shadow: none; }
+        .update-btn:hover { background: #cbd5e1; transform: none; }
         @media (max-width: 600px) {
             .app { padding: 12px; }
             th, td { padding: 8px 4px; font-size: 0.85rem; }
@@ -59,6 +62,8 @@
 <script>
     // ==================== НАСТРОЙКИ ====================
     const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';
+    const CACHE_KEY = 'mkd_cached_data';
+    const CACHE_META_KEY = 'mkd_cached_meta';
     
     // ==================== ОСТАЛЬНОЙ КОД ====================
     const COLORS = {
@@ -87,7 +92,176 @@
     let sortDirection = 'asc';
     let searchQuery = '';
     let searchCursorPos = 0;
-
+    
+    // Функции кеширования
+    function saveToCache(decryptedData, lastUpdated) {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(decryptedData));
+        localStorage.setItem(CACHE_META_KEY, JSON.stringify({ lastUpdated, cachedAt: new Date().toISOString() }));
+    }
+    
+    function loadFromCache() {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const meta = localStorage.getItem(CACHE_META_KEY);
+        if (cached && meta) {
+            try {
+                return { data: JSON.parse(cached), meta: JSON.parse(meta) };
+            } catch(e) { return null; }
+        }
+        return null;
+    }
+    
+    function clearCache() {
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(CACHE_META_KEY);
+    }
+    
+    // Загрузка данных с GitHub и проверка свежести
+    async function fetchAndCheckUpdate(login, password, showPromptOnNew = true) {
+        try {
+            const response = await fetch('data.json');
+            if (!response.ok) throw new Error('Не удалось загрузить data.json');
+            const encrypted = await response.text();
+            const key = login + ':' + password;
+            const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
+            if (!decrypted) throw new Error('Не удалось расшифровать. Неверный логин/пароль.');
+            const jsonData = JSON.parse(decrypted);
+            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
+            
+            const newLastUpdated = jsonData.lastUpdated || '1970-01-01T00:00:00.000Z';
+            const cached = loadFromCache();
+            const oldLastUpdated = cached?.meta?.lastUpdated || '1970-01-01T00:00:00.000Z';
+            
+            if (newLastUpdated > oldLastUpdated) {
+                if (showPromptOnNew) {
+                    if (confirm('📢 Доступна новая версия базы знаний. Обновить?')) {
+                        saveToCache(jsonData, newLastUpdated);
+                        return { data: jsonData, updated: true };
+                    }
+                } else {
+                    // Автоматическое обновление без запроса
+                    saveToCache(jsonData, newLastUpdated);
+                    return { data: jsonData, updated: true };
+                }
+            }
+            return { data: null, updated: false };
+        } catch (err) {
+            console.error('Ошибка проверки обновлений:', err);
+            return { data: null, updated: false, error: err.message };
+        }
+    }
+    
+    // Первичная загрузка (с паролем)
+    async function loadDataWithPassword(login, password, forceUpdate = false) {
+        const appDiv = document.getElementById('app');
+        appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
+        try {
+            const response = await fetch('data.json');
+            if (!response.ok) throw new Error(`Файл data.json не найден (${response.status})`);
+            const encrypted = await response.text();
+            const key = login + ':' + password;
+            const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
+            if (!decrypted) throw new Error('Не удалось расшифровать. Проверьте логин и пароль.');
+            const jsonData = JSON.parse(decrypted);
+            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
+            
+            const lastUpdated = jsonData.lastUpdated || new Date().toISOString();
+            saveToCache(jsonData, lastUpdated);
+            data = jsonData;
+            renderApp();
+            return true;
+        } catch (err) {
+            console.error(err);
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}</div>`;
+            return false;
+        }
+    }
+    
+    // Показать интерфейс с данными из кеша (без пароля)
+    function showCachedData() {
+        const cached = loadFromCache();
+        if (cached && cached.data) {
+            data = cached.data;
+            renderApp();
+            // В фоне проверяем обновления (если есть интернет)
+            setTimeout(() => checkForUpdatesInBackground(), 100);
+        } else {
+            showLoginForm();
+        }
+    }
+    
+    // Фоновая проверка обновлений (без запроса пароля, только уведомление)
+    async function checkForUpdatesInBackground() {
+        const cached = loadFromCache();
+        if (!cached) return;
+        
+        try {
+            const response = await fetch('data.json');
+            if (!response.ok) return;
+            const encrypted = await response.text();
+            // Не можем расшифровать без пароля. Проверим по lastUpdated через отдельный запрос?
+            // Упрощённо: просто покажем кнопку обновления, если нет интернета или не можем проверить
+            // Реализуем через head-запрос или отдельный мета-файл? Сложно.
+            // Вместо этого: показываем кнопку "Проверить обновления" в интерфейсе.
+        } catch(e) {}
+        
+        // Добавляем кнопку "Проверить обновления" в интерфейс
+        addUpdateButton();
+    }
+    
+    function addUpdateButton() {
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar && !document.getElementById('update-check-btn')) {
+            const updateBtn = document.createElement('button');
+            updateBtn.id = 'update-check-btn';
+            updateBtn.textContent = '🔄 Проверить обновления';
+            updateBtn.className = 'secondary';
+            updateBtn.onclick = () => promptForUpdate();
+            toolbar.appendChild(updateBtn);
+        }
+    }
+    
+    function promptForUpdate() {
+        const login = prompt('Введите логин для обновления базы:');
+        if (!login) return;
+        const password = prompt('Введите пароль:');
+        if (!password) return;
+        const hash = CryptoJS.SHA256(login + ':' + password).toString();
+        if (hash !== SECRET_HASH) {
+            alert('Неверный логин или пароль');
+            return;
+        }
+        // Загружаем и обновляем кеш
+        loadDataWithPassword(login, password, true).then(success => {
+            if (success) alert('✅ База обновлена');
+        });
+    }
+    
+    function showLoginForm() {
+        const savedLogin = localStorage.getItem('saved_login') || '';
+        document.getElementById('app').innerHTML = `
+            <div class="login-box" id="login-box">
+                <h2>🔐 Доступ к базе знаний</h2>
+                <form id="login-form" onsubmit="return false;">
+                    <input type="text" id="login-input" name="login" placeholder="Логин" autocomplete="username" value="${savedLogin.replace(/"/g, '&quot;')}">
+                    <input type="text" id="password-input" name="password" placeholder="Пароль" autocomplete="current-password">
+                    <button type="submit" id="login-btn">Войти</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const login = document.getElementById('login-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const hash = CryptoJS.SHA256(login + ':' + password).toString();
+            if (hash === SECRET_HASH) {
+                localStorage.setItem('saved_login', login);
+                loadDataWithPassword(login, password);
+            } else {
+                alert('Неверный логин или пароль');
+            }
+        });
+    }
+    
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -107,26 +281,6 @@
                 </div>
             </div>
         `;
-    }
-
-    async function loadData(login, password) {
-        const appDiv = document.getElementById('app');
-        appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
-        try {
-            const response = await fetch('data.json');
-            if (!response.ok) throw new Error(`Файл data.json не найден (${response.status})`);
-            const encrypted = await response.text();
-            const key = login + ':' + password;
-            const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error('Не удалось расшифровать');
-            const jsonData = JSON.parse(decrypted);
-            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
-            data = jsonData;
-            renderApp();
-        } catch (err) {
-            console.error(err);
-            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}</div>`;
-        }
     }
 
     function getAccessPaths(locationId, visited = new Set()) {
@@ -241,7 +395,7 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '</table><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -257,7 +411,7 @@
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div class="table-container">
-                    <table>
+                    <td>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
@@ -345,7 +499,7 @@
                 </div>
                 <h3>📍 Локации и доступы</h3>
                 <div class="table-container">
-                    <table>
+                    </table>
                         <thead>
                             <tr>
                                 <th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Вход через</th><th>Комментарий</th><th>Цвет</th>
@@ -394,6 +548,7 @@
             document.querySelectorAll('.house-link').forEach(link => {
                 link.addEventListener('click', (e) => { e.preventDefault(); currentHouseId = link.dataset.id; currentScreen = 'house'; renderApp(); });
             });
+            addUpdateButton();
             if (lastSelectedHouseId) {
                 setTimeout(() => {
                     const houseLink = document.querySelector(`.house-link[data-id="${lastSelectedHouseId}"]`);
@@ -417,31 +572,15 @@
         }
     }
 
-    // СТАРТ: форма входа с сохранением логина в localStorage
-    const savedLogin = localStorage.getItem('saved_login') || '';
-    document.getElementById('app').innerHTML = `
-        <div class="login-box" id="login-box">
-            <h2>🔐 Доступ к базе знаний</h2>
-            <form id="login-form" action="#" method="post" onsubmit="return false;">
-                <input type="text" id="login-input" name="login" placeholder="Логин" autocomplete="username" value="${savedLogin.replace(/"/g, '&quot;')}">
-                <input type="text" id="password-input" name="password" placeholder="Пароль" autocomplete="current-password">
-                <button type="submit" id="login-btn">Войти</button>
-            </form>
-        </div>
-    `;
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const login = document.getElementById('login-input').value.trim();
-        const password = document.getElementById('password-input').value;
-        const hash = CryptoJS.SHA256(login + ':' + password).toString();
-        if (hash === SECRET_HASH) {
-            localStorage.setItem('saved_login', login);
-            loadData(login, password);
-        } else {
-            alert('Неверный логин или пароль');
-        }
-        return false;
-    });
+    // СТАРТ: проверяем кеш
+    const cached = loadFromCache();
+    if (cached && cached.data) {
+        data = cached.data;
+        renderApp();
+        setTimeout(() => checkForUpdatesInBackground(), 100);
+    } else {
+        showLoginForm();
+    }
 </script>
 </body>
 </html>
