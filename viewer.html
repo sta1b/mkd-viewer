@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>База знаний МКД - Просмотр</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
         body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
@@ -13,31 +14,29 @@
         button { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
         button:hover { background: #1d4ed8; transform: scale(0.98); }
         .search-box { flex: 1 1 250px; padding: 10px 14px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.9rem; background: #f9fafb; }
-
         .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; vertical-align: middle; }
         .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; margin-left: 5px; white-space: nowrap; }
         .status-ok { background: #44cc44; color: white; }
         .status-plumber { background: #4444ff; color: white; }
         .status-unverified { background: #ffcc00; color: black; }
         .status-broken { background: #ff4444; color: white; }
-
         .table-container { overflow-x: auto; max-height: 70vh; overflow-y: auto; border-radius: 20px; margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
         th { background: #f8fafc; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; cursor: pointer; position: sticky; top: 0; z-index: 10; }
         th:hover { background: #e2e8f0; }
         td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-
         .empty-message, .loading, .error { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
         .loading { color: #2563eb; font-style: normal; }
         .error { color: #ef4444; font-style: normal; }
         .keyring-header { background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
-
         .legend-tooltip { position: relative; display: inline-block; cursor: help; margin-left: 10px; }
         .legend-tooltip .tooltip-text { visibility: hidden; background: #1e293b; color: white; padding: 12px 16px; border-radius: 16px; position: absolute; z-index: 1000; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 8px; white-space: nowrap; font-size: 0.8rem; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .legend-tooltip .tooltip-text::before { content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #1e293b; }
         .legend-tooltip:hover .tooltip-text { visibility: visible; }
         .tooltip-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
-
+        .login-box { max-width: 400px; margin: 50px auto; text-align: center; background: white; padding: 30px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 1rem; }
+        .login-box button { width: 100%; }
         @media (max-width: 600px) {
             .app { padding: 12px; }
             th, td { padding: 8px 4px; font-size: 0.85rem; }
@@ -48,10 +47,14 @@
     </style>
 </head>
 <body>
-<div class="app" id="app"><div class="loading">⏳ Загрузка данных...</div></div>
+<div class="app" id="app"></div>
 
 <script>
-    // ==================== НАСТРОЙКИ И КОНСТАНТЫ ====================
+    // ==================== НАСТРОЙКИ ====================
+    // ⚠️ ВСТАВЬТЕ СВОЙ ХЕШ (полученный из crypto-tool.html)
+    const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';  // ← ЗАМЕНИТЕ НА ВАШ ХЕШ!
+    
+    // ==================== ОСТАЛЬНОЙ КОД VIEWER ====================
     const COLORS = {
         red: { name: 'Красный', desc: 'критично (нет ключа)', bg: '#ffe6e6', dot: '#ff4444' },
         orange: { name: 'Оранжевый', desc: 'доступ через третьих лиц', bg: '#fff0e6', dot: '#ff8800' },
@@ -88,10 +91,10 @@
             <div class="legend-tooltip">
                 <span style="font-size: 1.2rem; background: #e2e8f0; padding: 4px 10px; border-radius: 20px; cursor: help;">🎨</span>
                 <div class="tooltip-text">
-                    ${Object.entries(COLORS).map(([key, value]) => `
+                    ${Object.entries(COLORS).map(([k, v]) => `
                         <div class="tooltip-item">
-                            <span class="color-dot" style="background: ${value.dot}; width: 14px; height: 14px;"></span>
-                            <span><strong>${value.name}</strong> — ${value.desc}</span>
+                            <span class="color-dot" style="background: ${v.dot}; width: 14px; height: 14px;"></span>
+                            <span><strong>${v.name}</strong> — ${v.desc}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -99,24 +102,26 @@
         `;
     }
 
-    // ==================== ЗАГРУЗКА ДАННЫХ ====================
-    async function loadData() {
+    async function loadData(login, password) {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         try {
             const response = await fetch('data.json');
             if (!response.ok) throw new Error(`Файл data.json не найден (${response.status})`);
-            const jsonData = await response.json();
+            const encrypted = await response.text();
+            const key = login + ':' + password;
+            const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
+            if (!decrypted) throw new Error('Не удалось расшифровать. Проверьте логин и пароль.');
+            const jsonData = JSON.parse(decrypted);
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
             data = jsonData;
             renderApp();
         } catch (err) {
             console.error(err);
-            appDiv.innerHTML = `<div class="error">❌ Ошибка загрузки: ${err.message}<br><br><strong>Файл data.json не найден в репозитории.</strong></div>`;
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Возможно, неверный логин/пароль или повреждён файл данных.</div>`;
         }
     }
 
-    // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
     function getAccessPaths(locationId, visited = new Set()) {
         const location = data.locations.find(l => l.id === locationId);
         if (!location) return [];
@@ -138,13 +143,10 @@
     function filterHouses(arr) { if (!searchQuery.trim()) return arr; const q = searchQuery.toLowerCase(); return arr.filter(h => h.address.toLowerCase().includes(q) || (h.manager && h.manager.toLowerCase().includes(q)) || (h.uk && h.uk.toLowerCase().includes(q))); }
     function getSortedHouses(arr) { return [...arr].sort((a, b) => { let va = a[sortColumn] || '', vb = b[sortColumn] || ''; if (typeof va === 'string') va = va.toLowerCase(); if (typeof vb === 'string') vb = vb.toLowerCase(); if (va < vb) return sortDirection === 'asc' ? -1 : 1; if (va > vb) return sortDirection === 'asc' ? 1 : -1; return 0; }); }
 
-    // ==================== ЭКРАН ЛОКАЦИИ (кликабельные локации с фото) ====================
     function renderLocationScreen() {
         const location = data.locations.find(l => l.id === currentLocationId);
         if (!location) return '<div class="error">Локация не найдена</div>';
         const house = data.houses.find(h => h.id === location.houseId);
-
-        // Рекурсивное построение дерева доступов
         function buildAccessTree(locId, visited = new Set()) {
             const loc = data.locations.find(l => l.id === locId);
             if (!loc) return null;
@@ -160,7 +162,6 @@
             });
             return node;
         }
-
         function renderAccessTree(node, depth = 0) {
             if (!node) return '';
             const loc = node.location;
@@ -189,24 +190,16 @@
             html += `</div>`;
             return html;
         }
-
         const tree = buildAccessTree(location.id);
         const treeHtml = tree ? renderAccessTree(tree) : '<p>Нет данных о маршруте</p>';
-
-        // Фотографии локации
         let photosHtml = '';
         if (location.photos && location.photos.length > 0) {
             photosHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">' +
-                location.photos.map(photo => `
-                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f8fafc; border-radius: 12px;">
-                        <a href="${escapeHtml(photo.url)}" target="_blank" style="color: #2563eb; text-decoration: none;">📸 ${escapeHtml(photo.description || 'Фото')}</a>
-                    </div>
-                `).join('') +
+                location.photos.map(photo => `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f8fafc; border-radius: 12px;"><a href="${escapeHtml(photo.url)}" target="_blank" style="color: #2563eb; text-decoration: none;">📸 ${escapeHtml(photo.description || 'Фото')}</a></div>`).join('') +
                 '</div>';
         } else {
             photosHtml = '<p style="color: #64748b;">Фотографии не добавлены</p>';
         }
-
         return `
             <div>
                 <div style="margin-bottom:20px;">
@@ -224,8 +217,7 @@
         `;
     }
 
-    // ==================== ОСНОВНЫЕ ЭКРАНЫ ====================
-        function renderMainScreen() {
+    function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -235,6 +227,10 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
+                    <td style="width: 50px;">${index + 1}${escapeHtml(house.manager || '')}${escapeHtml(house.uk || '')}
+
+                    <td style="width: 50px;">${index + 1}${escapeHtml(house.manager || '')}${escapeHtml(house.uk || '')}
+
                     <td style="width: 50px;">${index + 1}</td>
                     <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
@@ -242,7 +238,7 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов<table></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -258,7 +254,7 @@
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск по адресу, управляющему, УК..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div class="table-container">
-                    <table>
+                    <td>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
@@ -278,17 +274,14 @@
     function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
-
         const keyring = getKeyringForHouse(currentHouseId);
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
         const houseBgColor = house.color ? COLORS[house.color]?.bg || '' : '';
-
         let locationsRows = '';
         locations.forEach(location => {
             const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
-
             let keysHtml = '';
             if (location.keys && location.keys.length) {
                 keysHtml = location.keys.map(keyItem => {
@@ -301,8 +294,6 @@
                     return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}${note ? ` (${escapeHtml(note)})` : ''}</span>`;
                 }).join(' ');
             }
-
-            // Логика колонки "Вход через" с кликабельным [+N]
             let accessHtml = '';
             if (location.entryFromStreet) {
                 accessHtml = '🚪 улица';
@@ -316,17 +307,10 @@
                     else accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
                 } else {
                     const mainPath = paths[0].slice(0, -1);
-                    if (mainPath.length === 0) {
-                        accessHtml = '—';
-                    } else {
-                        const mainPathStr = mainPath.map(l => escapeHtml(l.place)).join(' → ');
-                        // КЛИКАБЕЛЬНЫЙ [+N] — ведёт на карточку текущей локации
-                        accessHtml = `${mainPathStr} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>`;
-                    }
+                    if (mainPath.length === 0) accessHtml = '—';
+                    else accessHtml = `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>`;
                 }
             }
-
-            // КЛИКАБЕЛЬНАЯ ЛОКАЦИЯ
             locationsRows += `
                 <tr style="background: ${bgColor};">
                     <td><a href="#" class="location-link" data-id="${location.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(location.place)}</a></td>
@@ -338,9 +322,7 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-
         if (locationsRows === '') locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
-
         return `
             <div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
@@ -376,7 +358,6 @@
         `;
     }
 
-    // ==================== ОСНОВНОЙ РЕНДЕР ====================
     function renderApp() {
         const container = document.getElementById('app');
         if (!container) return;
@@ -401,7 +382,9 @@
                     }, 10);
                 });
             }
-            document.getElementById('refresh-btn')?.addEventListener('click', () => loadData());
+            document.getElementById('refresh-btn')?.addEventListener('click', () => {
+                location.reload();
+            });
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
                     if (th.dataset.sort === 'index') return;
@@ -423,7 +406,25 @@
         }
     }
 
-    loadData();
+    // СТАРТ: показываем форму ввода логина и пароля (ПАРОЛЬ ВИДЕН)
+    document.getElementById('app').innerHTML = `
+        <div class="login-box" id="login-box">
+            <h2>🔐 Доступ к базе знаний</h2>
+            <input type="text" id="login-input" placeholder="Логин" autocomplete="off">
+            <input type="text" id="password-input" placeholder="Пароль" autocomplete="off">
+            <button id="login-btn">Войти</button>
+        </div>
+    `;
+    document.getElementById('login-btn').addEventListener('click', () => {
+        const login = document.getElementById('login-input').value.trim();
+        const password = document.getElementById('password-input').value;
+        const hash = CryptoJS.SHA256(login + ':' + password).toString();
+        if (hash === SECRET_HASH) {
+            loadData(login, password);
+        } else {
+            alert('Неверный логин или пароль');
+        }
+    });
 </script>
 </body>
 </html>
