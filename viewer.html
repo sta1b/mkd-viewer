@@ -378,7 +378,7 @@
         `;
     }
 
-    function renderMainScreen() {
+        function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -411,7 +411,7 @@
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
                 </div>
                 <div class="table-container">
-                    <td>
+                    <table>
                         <thead>
                             <tr>
                                 <th data-sort="index">#</th>
