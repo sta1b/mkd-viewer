@@ -44,9 +44,6 @@
         .login-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 1rem; }
         .login-box button { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 40px; cursor: pointer; font-weight: 500; }
         .login-box button:hover { background: #1d4ed8; }
-        .status-banner { background: #f8fafc; border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: #475569; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-        .update-btn { background: #e2e8f0; color: #1e293b; padding: 4px 12px; font-size: 0.75rem; box-shadow: none; }
-        .update-btn:hover { background: #cbd5e1; transform: none; }
         @media (max-width: 600px) {
             .app { padding: 12px; }
             th, td { padding: 8px 4px; font-size: 0.85rem; }
@@ -138,7 +135,6 @@
                         return { data: jsonData, updated: true };
                     }
                 } else {
-                    // Автоматическое обновление без запроса
                     saveToCache(jsonData, newLastUpdated);
                     return { data: jsonData, updated: true };
                 }
@@ -151,7 +147,7 @@
     }
     
     // Первичная загрузка (с паролем)
-    async function loadDataWithPassword(login, password, forceUpdate = false) {
+    async function loadDataWithPassword(login, password) {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         try {
@@ -182,30 +178,10 @@
         if (cached && cached.data) {
             data = cached.data;
             renderApp();
-            // В фоне проверяем обновления (если есть интернет)
-            setTimeout(() => checkForUpdatesInBackground(), 100);
+            setTimeout(() => addUpdateButton(), 100);
         } else {
             showLoginForm();
         }
-    }
-    
-    // Фоновая проверка обновлений (без запроса пароля, только уведомление)
-    async function checkForUpdatesInBackground() {
-        const cached = loadFromCache();
-        if (!cached) return;
-        
-        try {
-            const response = await fetch('data.json');
-            if (!response.ok) return;
-            const encrypted = await response.text();
-            // Не можем расшифровать без пароля. Проверим по lastUpdated через отдельный запрос?
-            // Упрощённо: просто покажем кнопку обновления, если нет интернета или не можем проверить
-            // Реализуем через head-запрос или отдельный мета-файл? Сложно.
-            // Вместо этого: показываем кнопку "Проверить обновления" в интерфейсе.
-        } catch(e) {}
-        
-        // Добавляем кнопку "Проверить обновления" в интерфейс
-        addUpdateButton();
     }
     
     function addUpdateButton() {
@@ -230,8 +206,7 @@
             alert('Неверный логин или пароль');
             return;
         }
-        // Загружаем и обновляем кеш
-        loadDataWithPassword(login, password, true).then(success => {
+        loadDataWithPassword(login, password).then(success => {
             if (success) alert('✅ База обновлена');
         });
     }
@@ -378,7 +353,7 @@
         `;
     }
 
-        function renderMainScreen() {
+    function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -388,14 +363,14 @@
             const dotColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
             tableRows += `
                 <tr style="background: ${bgColor};">
-                    <td style="width: 50px;">${index + 1}</td>
+                    <td style="width: 50px;">${index + 1}<table>
                     <td><a href="#" class="house-link" data-id="${house.id}" style="color:#2563eb; text-decoration:none; font-weight:500;">${escapeHtml(house.address)}</a></td>
                     <td>${escapeHtml(house.manager || '')}</td>
                     <td>${escapeHtml(house.uk || '')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов<tr></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -435,10 +410,12 @@
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
         const houseBgColor = house.color ? COLORS[house.color]?.bg || '' : '';
+        
         let locationsRows = '';
         locations.forEach(location => {
             const bgColor = location.color ? COLORS[location.color]?.bg || '' : '';
             const dotColor = location.color ? COLORS[location.color]?.dot || '#ccc' : '#ccc';
+            
             let keysHtml = '';
             if (location.keys && location.keys.length) {
                 keysHtml = location.keys.map(keyItem => {
@@ -451,20 +428,25 @@
                     return `<span class="status-badge ${status.badge}">${status.icon} ${key.number}${note ? ` (${escapeHtml(note)})` : ''}</span>`;
                 }).join(' ');
             }
+            
             let accessHtml = '';
             if (location.entryFromStreet) {
                 accessHtml = '🚪 улица';
             } else {
                 const paths = getAccessPaths(location.id);
-                if (paths.length === 0) accessHtml = '—';
-                else if (paths.length === 1) {
+                if (paths.length === 0) {
+                    accessHtml = '—';
+                } else if (paths.length === 1) {
                     const route = paths[0].slice(0, -1);
-                    accessHtml = route.length ? route.map(l => escapeHtml(l.place)).join(' → ') : '—';
+                    if (route.length === 0) accessHtml = '—';
+                    else accessHtml = route.map(l => escapeHtml(l.place)).join(' → ');
                 } else {
                     const mainPath = paths[0].slice(0, -1);
-                    accessHtml = mainPath.length ? `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>` : '—';
+                    if (mainPath.length === 0) accessHtml = '—';
+                    else accessHtml = `${mainPath.map(l => escapeHtml(l.place)).join(' → ')} <a href="#" class="location-link" data-id="${location.id}" style="color: #f59e0b; text-decoration: none; font-weight: 500;">[+${paths.length-1}]</a>`;
                 }
             }
+            
             locationsRows += `
                 <tr style="background: ${bgColor};">
                     <td><a href="#" class="location-link" data-id="${location.id}" style="color:#2563eb; text-decoration:none;">${escapeHtml(location.place)}</a></td>
@@ -476,7 +458,9 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
+        
         if (locationsRows === '') locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
+        
         return `
             <div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
@@ -499,7 +483,7 @@
                 </div>
                 <h3>📍 Локации и доступы</h3>
                 <div class="table-container">
-                    </table>
+                    <table>
                         <thead>
                             <tr>
                                 <th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Вход через</th><th>Комментарий</th><th>Цвет</th>
@@ -577,7 +561,7 @@
     if (cached && cached.data) {
         data = cached.data;
         renderApp();
-        setTimeout(() => checkForUpdatesInBackground(), 100);
+        setTimeout(() => addUpdateButton(), 100);
     } else {
         showLoginForm();
     }
