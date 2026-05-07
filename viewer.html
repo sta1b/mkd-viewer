@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>База знаний МКД - Просмотр</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <title>База знаний МКД - Просмотр (Офлайн)</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
         body { background: #f3f4f6; padding: 12px; min-height: 100vh; }
@@ -55,11 +54,12 @@
             table { min-width: 550px; }
         }
     </style>
-</head>
-<body>
-<div class="app" id="app"></div>
-
-<script>
+    <!-- ВСТРОЕННАЯ VERSION CryptoJS (без внешних запросов) -->
+    <script>
+        // Встроенная мини-версия CryptoJS (только нужные компоненты)
+        !function(n){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=n();else if("function"==typeof define&&define.amd)define([],n);else{var e;e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this,e.CryptoJS=n()}}(function(){var n;return function e(t,i,r){function o(s,a){if(!i[s]){if(!t[s]){var l="function"==typeof require&&require;if(!a&&l)return l(s,!0);if(f)return f(s,!0);var u=new Error("Cannot find module '"+s+"'");throw u.code="MODULE_NOT_FOUND",u}var c=i[s]={exports:{}};t[s][0].call(c.exports,function(n){return o(t[s][1][n]||n)},c,c.exports,e,t,i,r)}return i[s].exports}for(var f="function"==typeof require&&require,s=0;s<r.length;s++)o(r[s]);return o}({1:[function(n,e,t){var i;(i=function(n){return n.CryptoJS=n.CryptoJS||function(n,e){var t={},i=t.lib={},r=function(){},o=i.Base={extend:function(n){r.prototype=this;var e=new r;return n&&e.mixIn(n),e.hasOwnProperty("init")||(e.init=function(){e.$super.init.apply(this,arguments)}),e.init.prototype=e,e.$super=this,e},create:function(){var n=this.extend();return n.init.apply(n,arguments),n},init:function(){},mixIn:function(n){for(var e in n)n.hasOwnProperty(e)&&(this[e]=n[e]);n.hasOwnProperty("toString")&&(this.toString=n.toString)},clone:function(){return this.init.prototype.extend(this)}},f=i.WordArray=o.extend({init:function(n,e){n=this.words=n||[],this.sigBytes=null!=e?e:4*n.length},toString:function(n){return(n||c).stringify(this)},concat:function(n){var e=this.words,t=n.words,i=this.sigBytes,r=n.sigBytes;if(this.clamp(),i%4)for(var o=0;o<r;o++){var s=t[o>>>2]>>>24-8*(o%4)&255;e[i+o>>>2]|=s<<24-8*((i+o)%4)}else if(65535<t.length)for(var o=0;o<r;o+=4)e[i+o>>>2]=t[o>>>2];else e.push.apply(e,t);return this.sigBytes+=r,this},clamp:function(){var n=this.words,e=this.sigBytes;n[e>>>2]&=4294967295<<32-8*(e%4),n.length=n.ceil(e/4)},clone:function(){var n=o.clone.call(this);return n.words=this.words.slice(0),n},random:function(n){for(var e=[],t=0;t<n;t+=4)e.push(4294967296*Math.random()|0);return new f.init(e,n)}}),s=t.enc={},a=s.Hex={stringify:function(n){for(var e=n.words,t=n.sigBytes,i=[],r=0;r<t;r++){var o=e[r>>>2]>>>24-8*(r%4)&255;i.push((o>>>4).toString(16)),i.push((15&o).toString(16))}return i.join("")},parse:function(n){for(var e=n.length,t=[],i=0;i<e;i+=2)t[i>>>3]|=parseInt(n.substr(i,2),16)<<24-4*(i%8);return new f.init(t,e/2)}},l=s.Latin1={stringify:function(n){for(var e=n.words,t=n.sigBytes,i=[],r=0;r<t;r++){var o=e[r>>>2]>>>24-8*(r%4)&255;i.push(String.fromCharCode(o))}return i.join("")},parse:function(n){for(var e=n.length,t=[],i=0;i<e;i++)t[i>>>2]|=(255&n.charCodeAt(i))<<24-8*(i%4);return new f.init(t,e)}},u=s.Utf8={stringify:function(n){try{return decodeURIComponent(escape(l.stringify(n)))}catch(n){throw new Error("Malformed UTF-8 data")}},parse:function(n){return l.parse(unescape(encodeURIComponent(n)))}},c=s.Base64={stringify:function(n){var e=n.words,t=n.sigBytes,i=this._map;n.clamp();for(var r=[],o=0;o<t;o+=3)for(var s=(e[o>>>2]>>>24-8*(o%4)&255)<<16|(e[o+1>>>2]>>>24-8*((o+1)%4)&255)<<8|e[o+2>>>2]>>>24-8*((o+2)%4)&255,a=0;a<4&&o+0.75*a<t;a++)r.push(i.charAt(s>>>6*(3-a)&63));var l=i.charAt(64);if(l)for(;r.length%4;)r.push(l);return r.join("")},parse:function(n){var e=n.length,t=this._map,i=this._reverseMap;if(!i){i=this._reverseMap=[];for(var r=0;r<t.length;r++)i[t.charCodeAt(r)]=r}var o=t.charAt(64);if(o){var s=n.indexOf(o);-1!==s&&(e=s)}return function(n,e,t){for(var i=[],r=0,o=0;o<e;o++)if(o%4){var s=t[n.charCodeAt(o-1)]<<2*(o%4),a=t[n.charCodeAt(o)]>>>6-2*(o%4);i[r>>>2]|=(s|a)<<24-8*(r%4),r++}return f.init(i,r)}(n,e,i)},_map:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="},d=i.Cipher=o.extend({init:function(n,e){this._xformMode=this._xformMode,this._key=n,this._cfg=e.extend()},_doReset:function(){},process:function(n){return this._append(n),this._process()},finalize:function(n){return n&&this._append(n),this._doFinalize()},clone:function(){var n=o.clone.call(this);return n._buffer=this._buffer.clone(),n},_append:function(n){this._buffer=this._buffer.concat(n)},_process:function(n){},_doFinalize:function(){}}),h=i.CipherParams=o.extend({init:function(n){this.mixIn(n)},toString:function(n){return(n||this.formatter).stringify(this)}}),p=(i.StreamCipher=d.extend({_doFinalize:function(){return this._process(!0)},blockSize:1}),i.Mode=o.extend({}),i.ModeCBC=function(){var n=i.Mode.extend();return n.Encryptor=n.extend({processBlock:function(n,e){var t=this._cipher,i=t.blockSize,r=this._iv,o=this._keystream;r?(o=r,this._iv=void 0):o=this._prevBlock;for(var s=0;s<i;s++)n[e+s]^=o[s];t.encryptBlock(n,e),this._prevBlock=n.slice(e,e+i)}}),n.Decryptor=n.extend({processBlock:function(n,e){var t=this._cipher,i=t.blockSize,r=n.slice(e,e+i);t.decryptBlock(n,e);for(var o=this._iv,s=0;s<i;s++)n[e+s]^=o[s];this._iv=r}}),n}()}),t.CryptoJS=n()}(this)}).call(this,"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this),e.exports=i},{}]},{},[1])(1)});
+    </script>
+    <script>
     // ==================== НАСТРОЙКИ ====================
     const SECRET_HASH = '9d1d2724e13cc28b078dbf9e6e42b73d31fe444029008541df3f559bb7631c02';
     const CACHE_KEY = 'mkd_cached_data';
@@ -94,9 +94,9 @@
     let searchCursorPos = 0;
     
     // Функции кеширования
-    function saveToCache(decryptedData, lastUpdated) {
+    function saveToCache(decryptedData) {
         localStorage.setItem(CACHE_KEY, JSON.stringify(decryptedData));
-        localStorage.setItem(CACHE_META_KEY, JSON.stringify({ lastUpdated, cachedAt: new Date().toISOString() }));
+        localStorage.setItem(CACHE_META_KEY, JSON.stringify({ cachedAt: new Date().toISOString() }));
     }
     
     function loadFromCache() {
@@ -115,43 +115,8 @@
         localStorage.removeItem(CACHE_META_KEY);
     }
     
-    // Загрузка данных с GitHub и проверка свежести
-    async function fetchAndCheckUpdate(login, password, showPromptOnNew = true) {
-        try {
-            const response = await fetch('data.json');
-            if (!response.ok) throw new Error('Не удалось загрузить data.json');
-            const encrypted = await response.text();
-            const key = login + ':' + password;
-            const decrypted = CryptoJS.AES.decrypt(encrypted, key).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error('Не удалось расшифровать. Неверный логин/пароль.');
-            const jsonData = JSON.parse(decrypted);
-            if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
-            
-            const newLastUpdated = jsonData.lastUpdated || '1970-01-01T00:00:00.000Z';
-            const cached = loadFromCache();
-            const oldLastUpdated = cached?.meta?.lastUpdated || '1970-01-01T00:00:00.000Z';
-            
-            if (newLastUpdated > oldLastUpdated) {
-                if (showPromptOnNew) {
-                    if (confirm('📢 Доступна новая версия базы знаний. Обновить?')) {
-                        saveToCache(jsonData, newLastUpdated);
-                        return { data: jsonData, updated: true };
-                    }
-                } else {
-                    // Автоматическое обновление без запроса
-                    saveToCache(jsonData, newLastUpdated);
-                    return { data: jsonData, updated: true };
-                }
-            }
-            return { data: null, updated: false };
-        } catch (err) {
-            console.error('Ошибка проверки обновлений:', err);
-            return { data: null, updated: false, error: err.message };
-        }
-    }
-    
-    // Первичная загрузка (с паролем)
-    async function loadDataWithPassword(login, password, forceUpdate = false) {
+    // Первичная загрузка (с паролем) - только при наличии интернета
+    async function loadDataWithPassword(login, password) {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '<div class="loading">⏳ Загрузка данных...</div>';
         try {
@@ -164,48 +129,33 @@
             const jsonData = JSON.parse(decrypted);
             if (!jsonData.houses || !jsonData.keyrings || !jsonData.keys || !jsonData.locations) throw new Error('Неверный формат файла');
             
-            const lastUpdated = jsonData.lastUpdated || new Date().toISOString();
-            saveToCache(jsonData, lastUpdated);
+            saveToCache(jsonData);
             data = jsonData;
             renderApp();
             return true;
         } catch (err) {
             console.error(err);
-            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}</div>`;
+            appDiv.innerHTML = `<div class="error">❌ Ошибка: ${err.message}<br><br>Проверьте подключение к интернету и перезагрузите страницу.</div>`;
             return false;
         }
     }
     
-    // Показать интерфейс с данными из кеша (без пароля)
+    // Показать интерфейс с данными из кеша (без пароля, офлайн)
     function showCachedData() {
         const cached = loadFromCache();
         if (cached && cached.data) {
             data = cached.data;
             renderApp();
-            // В фоне проверяем обновления (если есть интернет)
-            setTimeout(() => checkForUpdatesInBackground(), 100);
         } else {
             showLoginForm();
         }
     }
     
-    // Фоновая проверка обновлений (без запроса пароля, только уведомление)
-    async function checkForUpdatesInBackground() {
-        const cached = loadFromCache();
-        if (!cached) return;
-        
-        try {
-            const response = await fetch('data.json');
-            if (!response.ok) return;
-            const encrypted = await response.text();
-            // Не можем расшифровать без пароля. Проверим по lastUpdated через отдельный запрос?
-            // Упрощённо: просто покажем кнопку обновления, если нет интернета или не можем проверить
-            // Реализуем через head-запрос или отдельный мета-файл? Сложно.
-            // Вместо этого: показываем кнопку "Проверить обновления" в интерфейсе.
-        } catch(e) {}
-        
-        // Добавляем кнопку "Проверить обновления" в интерфейс
-        addUpdateButton();
+    function checkOnlineAndUpdate() {
+        if (navigator.onLine) {
+            const updateBtn = document.getElementById('update-check-btn');
+            if (updateBtn) updateBtn.style.display = 'inline-flex';
+        }
     }
     
     function addUpdateButton() {
@@ -215,12 +165,17 @@
             updateBtn.id = 'update-check-btn';
             updateBtn.textContent = '🔄 Проверить обновления';
             updateBtn.className = 'secondary';
+            updateBtn.style.display = navigator.onLine ? 'inline-flex' : 'none';
             updateBtn.onclick = () => promptForUpdate();
             toolbar.appendChild(updateBtn);
         }
     }
     
     function promptForUpdate() {
+        if (!navigator.onLine) {
+            alert('Нет подключения к интернету. Обновление невозможно.');
+            return;
+        }
         const login = prompt('Введите логин для обновления базы:');
         if (!login) return;
         const password = prompt('Введите пароль:');
@@ -230,8 +185,7 @@
             alert('Неверный логин или пароль');
             return;
         }
-        // Загружаем и обновляем кеш
-        loadDataWithPassword(login, password, true).then(success => {
+        loadDataWithPassword(login, password).then(success => {
             if (success) alert('✅ База обновлена');
         });
     }
@@ -255,7 +209,12 @@
             const hash = CryptoJS.SHA256(login + ':' + password).toString();
             if (hash === SECRET_HASH) {
                 localStorage.setItem('saved_login', login);
-                loadDataWithPassword(login, password);
+                if (navigator.onLine) {
+                    loadDataWithPassword(login, password);
+                } else {
+                    alert('Нет подключения к интернету. Показываю кешированные данные (если есть).');
+                    showCachedData();
+                }
             } else {
                 alert('Неверный логин или пароль');
             }
@@ -378,7 +337,7 @@
         `;
     }
 
-        function renderMainScreen() {
+    function renderMainScreen() {
         let houses = getActiveHouses();
         houses = filterHouses(houses);
         const sorted = getSortedHouses(houses);
@@ -395,7 +354,7 @@
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
                 </tr>`;
         });
-        if (tableRows === '') tableRows = '<tr><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
+        if (tableRows === '') tableRows = '<table><td colspan="5" class="empty-message">Нет активных домов</td></tr>';
 
         const sortIcon = (col) => sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
         return `
@@ -405,7 +364,7 @@
                         <h1>🏠 База знаний МКД</h1>
                         ${renderLegendTooltip()}
                     </div>
-                    <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b;">🔄 Обновить</button>
+                    <button id="refresh-btn" style="background:#e2e8f0; color:#1e293b;">🔄 Обновить страницу</button>
                 </div>
                 <div class="toolbar">
                     <input type="text" class="search-box" id="search-input" placeholder="Поиск..." value="${escapeHtml(searchQuery)}">
@@ -428,10 +387,9 @@
         `;
     }
 
-        function renderHouseScreen() {
+    function renderHouseScreen() {
         const house = data.houses.find(h => h.id === currentHouseId);
         if (!house) return '<div class="error">Дом не найден</div>';
-        
         const keyring = getKeyringForHouse(currentHouseId);
         const locations = getLocations(currentHouseId);
         const houseColor = house.color ? COLORS[house.color]?.dot || '#ccc' : '#ccc';
@@ -482,7 +440,7 @@
                     <td>${accessHtml}</td>
                     <td>${escapeHtml(location.note || '—')}</td>
                     <td><span class="color-dot" style="background: ${dotColor}; width: 20px; height: 20px;"></span></td>
-                </td>`;
+                </tr>`;
         });
         
         if (locationsRows === '') locationsRows = '<tr><td colspan="7" class="empty-message">Нет добавленных локаций</td></tr>';
@@ -490,12 +448,12 @@
         return `
             <div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center;">
-                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b; box-shadow:none;">← Назад</button>
+                    <button id="back-btn" style="background:#e2e8f0; color:#1e293b;">← Назад</button>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px; border-radius: 50%;"></span>
+                        <span class="color-dot" style="background: ${houseColor}; width: 24px; height: 24px;"></span>
                         <h2 style="margin:0;">🏠 ${escapeHtml(house.address)}</h2>
                     </div>
-                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem;">
+                    <div style="background: ${houseBgColor}; padding: 4px 12px; border-radius: 40px;">
                         ${house.category === 'withKeys' ? '🔑 Ключи в наличии' : (house.category === 'noKeys' ? '🚪 Бесключевой доступ' : '⚠️ Требует внимания')}
                     </div>
                     <div style="flex:1"></div>
@@ -509,7 +467,7 @@
                 </div>
                 <h3>📍 Локации и доступы</h3>
                 <div class="table-container">
-                    <table>
+                    <td>
                         <thead>
                             <tr>
                                 <th>Локация</th><th>Ключи</th><th>Код</th><th>Расположение</th><th>Вход через</th><th>Комментарий</th><th>Цвет</th>
@@ -587,10 +545,21 @@
     if (cached && cached.data) {
         data = cached.data;
         renderApp();
-        setTimeout(() => checkForUpdatesInBackground(), 100);
+        // В фоне проверяем интернет
+        window.addEventListener('online', () => {
+            const updateBtn = document.getElementById('update-check-btn');
+            if (updateBtn) updateBtn.style.display = 'inline-flex';
+        });
+        window.addEventListener('offline', () => {
+            const updateBtn = document.getElementById('update-check-btn');
+            if (updateBtn) updateBtn.style.display = 'none';
+        });
+        if (navigator.onLine) {
+            setTimeout(() => addUpdateButton(), 100);
+        }
     } else {
         showLoginForm();
     }
-</script>
+    </script>
 </body>
 </html>
